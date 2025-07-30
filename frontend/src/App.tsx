@@ -1,4 +1,3 @@
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/layout/Navbar';
 import Dashboard from './pages/Dashboard';
@@ -11,7 +10,12 @@ import './App.css';
 
 function App() {
   return (
-    <Router>
+    <Router
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true
+      }}
+    >
       <div className="min-h-screen bg-purple-500">
         <Navbar />
         <div className="pt-16"> {/* Add padding to account for fixed navbar */}

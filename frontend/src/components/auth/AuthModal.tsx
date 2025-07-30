@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useAuthStore } from '../../stores/authStore';
+import { useAuthStore } from '../../stores/useAuthStore';
 import Card from '../ui/Card';
 import Input from '../ui/Input';
 import Button from '../ui/Button';
@@ -12,8 +12,11 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [parentEmail, setParentEmail] = useState('');
   const [error, setError] = useState('');
-  const { signIn, signUp } = useAuthStore();
+  const { login, register } = useAuthStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,9 +24,16 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
 
     try {
       if (isSignUp) {
-        await signUp(email, password);
+        // For now, use simplified registration
+        await register({
+          username: email.split('@')[0], // Use email prefix as username
+          email,
+          password,
+          dateOfBirth: '2000-01-01', // Default date
+          parentEmail: email // Use same email for now
+        });
       } else {
-        await signIn(email, password);
+        await login(email, password);
       }
       onClose();
     } catch (err) {

@@ -6,30 +6,102 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const path = require('path');
-const { Pool } = require('pg');
 const { v4: uuidv4 } = require('uuid');
 const WebSocket = require('ws');
 const http = require('http');
+
+// Load environment variables
+require('dotenv').config();
 
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
 // Environment variables
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3002;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://localhost:5432/mindspark_db';
+const DATABASE_URL = process.env.DATABASE_URL || 'sqlite:./database.sqlite';
 
-// Database connection
-const pool = new Pool({
-  connectionString: DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-});
+// Database setup - support both PostgreSQL and SQLite
+let db;
+let dbType;
+
+// Helper function to convert PostgreSQL-style queries to SQLite
+const convertQuery = (sql, params = []) => {
+  if (dbType === 'sqlite') {
+    // Convert $1, $2, ... to ? placeholders
+    let convertedSql = sql;
+    let paramIndex = 1;
+    while (convertedSql.includes(`$${paramIndex}`)) {
+      convertedSql = convertedSql.replace(`$${paramIndex}`, '?');
+      paramIndex++;
+    }
+    
+    // Convert table names from profiles to users for SQLite
+    convertedSql = convertedSql.replace(/\bprofiles\b/g, 'users');
+    
+    // Handle PostgreSQL-specific functions
+    convertedSql = convertedSql.replace(/NOW\(\)/g, "datetime('now')");
+    convertedSql = convertedSql.replace(/CURRENT_TIMESTAMP/g, "datetime('now')");
+    
+    return { sql: convertedSql, params };
+  }
+  return { sql, params };
+};
+
+if (DATABASE_URL.startsWith('sqlite:')) {
+  // SQLite setup
+  const sqlite3 = require('sqlite3').verbose();
+  const dbPath = DATABASE_URL.replace('sqlite:', '');
+  
+  dbType = 'sqlite';
+  const sqliteDb = new sqlite3.Database(dbPath);
+  
+  // Create wrapper for consistent API
+  db = {
+    query: (sql, params = []) => {
+      return new Promise((resolve, reject) => {
+        const { sql: convertedSql, params: convertedParams } = convertQuery(sql, params);
+        
+        if (convertedSql.trim().toUpperCase().startsWith('SELECT')) {
+          sqliteDb.all(convertedSql, convertedParams, (err, rows) => {
+            if (err) reject(err);
+            else resolve({ rows });
+          });
+        } else {
+          sqliteDb.run(convertedSql, convertedParams, function(err) {
+            if (err) reject(err);
+            else resolve({ rows: [], rowCount: this.changes, insertId: this.lastID });
+          });
+        }
+      });
+    }
+  };
+  
+  console.log('🗄️ Using SQLite database');
+} else {
+  // PostgreSQL setup
+  const { Pool } = require('pg');
+  dbType = 'postgresql';
+  
+  db = new Pool({
+    connectionString: DATABASE_URL,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  });
+  
+  console.log('🗄️ Using PostgreSQL database');
+}
 
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:5174', 
+    'http://localhost:5175',
+    'http://localhost:3000',
+    'http://localhost:3001'
+  ],
   credentials: true
 }));
 
@@ -138,13 +210,13 @@ wss.on('connection', (ws, req) => {
         const { room_id, content } = data;
         
         // Save message to database
-        const result = await pool.query(
+        const result = await db.query(
           'INSERT INTO chat_messages (room_id, user_id, content) VALUES ($1, $2, $3) RETURNING *',
           [room_id, ws.userId, content]
         );
         
         // Get message with user info
-        const messageWithUser = await pool.query(`
+        const messageWithUser = await db.query(`
           SELECT cm.*, p.username, p.avatar_url 
           FROM chat_messages cm
           JOIN profiles p ON cm.user_id = p.id
@@ -188,7 +260,7 @@ app.post('/api/auth/register', async (req, res) => {
     }
     
     // Check if user already exists
-    const existingUser = await pool.query(
+    const existingUser = await db.query(
       'SELECT id FROM profiles WHERE email = $1 OR username = $2',
       [email, username]
     );
@@ -203,11 +275,12 @@ app.post('/api/auth/register', async (req, res) => {
     
     // Create user profile
     const userId = uuidv4();
-    const newUser = await pool.query(`
-      INSERT INTO profiles (id, email, username, password_hash, date_of_birth, parent_email, points, level)
-      VALUES ($1, $2, $3, $4, $5, $6, 0, 1)
-      RETURNING id, email, username, points, level, created_at
-    `, [userId, email, username, hashedPassword, dateOfBirth, parentEmail]);
+    const newUser = await db.query(
+      `INSERT INTO profiles (id, email, username, password_hash, date_of_birth, parent_email, points, level)
+       VALUES ($1, $2, $3, $4, $5, $6, 0, 1)
+       RETURNING id, email, username, points, level, created_at`,
+      [userId, email, username, hashedPassword, dateOfBirth, parentEmail]
+    );
     
     const user = newUser.rows[0];
     const token = generateToken(user);
@@ -239,7 +312,7 @@ app.post('/api/auth/login', async (req, res) => {
     }
     
     // Find user
-    const userResult = await pool.query(
+    const userResult = await db.query(
       'SELECT * FROM profiles WHERE email = $1',
       [email]
     );
@@ -257,7 +330,7 @@ app.post('/api/auth/login', async (req, res) => {
     }
     
     // Update last activity
-    await pool.query(
+    await db.query(
       'UPDATE profiles SET last_activity = NOW() WHERE id = $1',
       [user.id]
     );
@@ -285,7 +358,7 @@ app.post('/api/auth/login', async (req, res) => {
 // Get current user profile
 app.get('/api/auth/profile', authenticateToken, async (req, res) => {
   try {
-    const userResult = await pool.query(
+    const userResult = await db.query(
       'SELECT id, email, username, avatar_url, points, level, streak_days, preferences FROM profiles WHERE id = $1',
       [req.user.id]
     );
@@ -312,7 +385,7 @@ app.post('/api/mood', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Mood type is required' });
     }
     
-    const moodEntry = await pool.query(`
+    const moodEntry = await db.query(`
       INSERT INTO mood_entries (user_id, mood_type, mood_intensity, notes)
       VALUES ($1, $2, $3, $4)
       RETURNING *
@@ -320,13 +393,13 @@ app.post('/api/mood', authenticateToken, async (req, res) => {
     
     // Award points for mood tracking
     const points = calculatePoints('mood_tracked');
-    await pool.query(
+    await db.query(
       'UPDATE profiles SET points = points + $1 WHERE id = $2',
       [points, req.user.id]
     );
     
     // Record progress
-    await pool.query(`
+    await db.query(`
       INSERT INTO progress_records (user_id, activity_type, activity_id, points_earned, progress_data)
       VALUES ($1, 'mood', $2, $3, $4)
     `, [req.user.id, moodEntry.rows[0].id, points, JSON.stringify({ mood_type, mood_intensity })]);
@@ -347,7 +420,7 @@ app.get('/api/mood', authenticateToken, async (req, res) => {
   try {
     const { days = 30 } = req.query;
     
-    const moodHistory = await pool.query(`
+    const moodHistory = await db.query(`
       SELECT * FROM mood_entries
       WHERE user_id = $1 AND created_at >= NOW() - INTERVAL '${days} days'
       ORDER BY created_at DESC
@@ -371,7 +444,7 @@ app.post('/api/tasks', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Task title is required' });
     }
     
-    const task = await pool.query(`
+    const task = await db.query(`
       INSERT INTO tasks (user_id, title, description, priority, due_date, status)
       VALUES ($1, $2, $3, $4, $5, 'must-do')
       RETURNING *
@@ -399,7 +472,7 @@ app.get('/api/tasks', authenticateToken, async (req, res) => {
     
     query += ' ORDER BY created_at DESC';
     
-    const tasks = await pool.query(query, params);
+    const tasks = await db.query(query, params);
     res.json({ tasks: tasks.rows });
   } catch (error) {
     console.error('Tasks fetch error:', error);
@@ -413,7 +486,7 @@ app.put('/api/tasks/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     const { title, description, priority, status, due_date } = req.body;
     
-    const task = await pool.query(`
+    const task = await db.query(`
       UPDATE tasks 
       SET title = COALESCE($1, title),
           description = COALESCE($2, description),
@@ -433,13 +506,13 @@ app.put('/api/tasks/:id', authenticateToken, async (req, res) => {
     // Award points if task completed
     if (status === 'done' && task.rows[0].status !== 'done') {
       const points = calculatePoints('task_completed');
-      await pool.query(
+      await db.query(
         'UPDATE profiles SET points = points + $1 WHERE id = $2',
         [points, req.user.id]
       );
       
       // Record progress
-      await pool.query(`
+      await db.query(`
         INSERT INTO progress_records (user_id, activity_type, activity_id, points_earned)
         VALUES ($1, 'task', $2, $3)
       `, [req.user.id, id, points]);
@@ -457,7 +530,7 @@ app.put('/api/tasks/:id', authenticateToken, async (req, res) => {
 // Get available games
 app.get('/api/games', async (req, res) => {
   try {
-    const games = await pool.query('SELECT * FROM games ORDER BY name');
+    const games = await db.query('SELECT * FROM games ORDER BY name');
     res.json({ games: games.rows });
   } catch (error) {
     console.error('Games fetch error:', error);
@@ -476,25 +549,25 @@ app.post('/api/games/:gameId/scores', authenticateToken, async (req, res) => {
     }
     
     // Get game info for points calculation
-    const game = await pool.query('SELECT * FROM games WHERE id = $1', [gameId]);
+    const game = await db.query('SELECT * FROM games WHERE id = $1', [gameId]);
     if (game.rows.length === 0) {
       return res.status(404).json({ error: 'Game not found' });
     }
     
-    const gameScore = await pool.query(`
+    const gameScore = await db.query(`
       INSERT INTO game_scores (user_id, game_id, score, completion_time, accuracy_percentage, level_reached, points_earned)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
     `, [req.user.id, gameId, score, completion_time, accuracy_percentage, level_reached, game.rows[0].points_per_completion]);
     
     // Update user points
-    await pool.query(
+    await db.query(
       'UPDATE profiles SET points = points + $1 WHERE id = $2',
       [game.rows[0].points_per_completion, req.user.id]
     );
     
     // Record progress
-    await pool.query(`
+    await db.query(`
       INSERT INTO progress_records (user_id, activity_type, activity_id, points_earned, progress_data)
       VALUES ($1, 'game', $2, $3, $4)
     `, [req.user.id, gameScore.rows[0].id, game.rows[0].points_per_completion, 
@@ -513,7 +586,7 @@ app.post('/api/games/:gameId/scores', authenticateToken, async (req, res) => {
 // Get user's game scores
 app.get('/api/games/scores', authenticateToken, async (req, res) => {
   try {
-    const scores = await pool.query(`
+    const scores = await db.query(`
       SELECT gs.*, g.name as game_name, g.category
       FROM game_scores gs
       JOIN games g ON gs.game_id = g.id
@@ -534,7 +607,7 @@ app.get('/api/games/scores', authenticateToken, async (req, res) => {
 // Get document categories
 app.get('/api/documents/categories', authenticateToken, async (req, res) => {
   try {
-    const categories = await pool.query('SELECT * FROM document_categories ORDER BY name');
+    const categories = await db.query('SELECT * FROM document_categories ORDER BY name');
     res.json({ categories: categories.rows });
   } catch (error) {
     console.error('Categories fetch error:', error);
@@ -561,7 +634,7 @@ app.post('/api/documents', authenticateToken, upload.single('file'), async (req,
       file_size = req.file.size;
     }
     
-    const document = await pool.query(`
+    const document = await db.query(`
       INSERT INTO documents (user_id, category_id, title, content, file_url, file_type, file_size, tags)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *
@@ -570,7 +643,7 @@ app.post('/api/documents', authenticateToken, upload.single('file'), async (req,
     
     // Award points
     const points = calculatePoints('document_uploaded');
-    await pool.query(
+    await db.query(
       'UPDATE profiles SET points = points + $1 WHERE id = $2',
       [points, req.user.id]
     );
@@ -605,7 +678,7 @@ app.get('/api/documents', authenticateToken, async (req, res) => {
     
     query += ' ORDER BY d.created_at DESC';
     
-    const documents = await pool.query(query, params);
+    const documents = await db.query(query, params);
     res.json({ documents: documents.rows });
   } catch (error) {
     console.error('Documents fetch error:', error);
@@ -618,7 +691,7 @@ app.get('/api/documents', authenticateToken, async (req, res) => {
 // Get chat rooms
 app.get('/api/chat/rooms', authenticateToken, async (req, res) => {
   try {
-    const rooms = await pool.query(`
+    const rooms = await db.query(`
       SELECT cr.*, 
              COUNT(cp.user_id) as participant_count,
              CASE WHEN cp.user_id IS NOT NULL THEN true ELSE false END as is_member
@@ -643,7 +716,7 @@ app.get('/api/chat/rooms/:roomId/messages', authenticateToken, async (req, res) 
     const { roomId } = req.params;
     const { limit = 50, offset = 0 } = req.query;
     
-    const messages = await pool.query(`
+    const messages = await db.query(`
       SELECT cm.*, p.username, p.avatar_url
       FROM chat_messages cm
       JOIN profiles p ON cm.user_id = p.id
@@ -665,7 +738,7 @@ app.post('/api/chat/rooms/:roomId/join', authenticateToken, async (req, res) => 
     const { roomId } = req.params;
     
     // Check if room exists and is active
-    const room = await pool.query(
+    const room = await db.query(
       'SELECT * FROM chat_rooms WHERE id = $1 AND is_active = true',
       [roomId]
     );
@@ -675,7 +748,7 @@ app.post('/api/chat/rooms/:roomId/join', authenticateToken, async (req, res) => 
     }
     
     // Add user to room (ignore if already member)
-    await pool.query(`
+    await db.query(`
       INSERT INTO chat_participants (room_id, user_id)
       VALUES ($1, $2)
       ON CONFLICT (room_id, user_id) DO NOTHING
@@ -716,7 +789,7 @@ app.get('/api/specialists', authenticateToken, async (req, res) => {
       ORDER BY avg_rating DESC, s.created_at
     `;
     
-    const specialists = await pool.query(query, params);
+    const specialists = await db.query(query, params);
     res.json({ specialists: specialists.rows });
   } catch (error) {
     console.error('Specialists fetch error:', error);
@@ -734,7 +807,7 @@ app.post('/api/appointments', authenticateToken, async (req, res) => {
     }
     
     // Check if specialist exists and is available
-    const specialist = await pool.query(
+    const specialist = await db.query(
       'SELECT * FROM specialists WHERE id = $1 AND is_available = true',
       [specialist_id]
     );
@@ -744,7 +817,7 @@ app.post('/api/appointments', authenticateToken, async (req, res) => {
     }
     
     // Check for scheduling conflicts
-    const conflictCheck = await pool.query(`
+    const conflictCheck = await db.query(`
       SELECT id FROM appointments 
       WHERE specialist_id = $1 
       AND appointment_date = $2 
@@ -755,7 +828,7 @@ app.post('/api/appointments', authenticateToken, async (req, res) => {
       return res.status(409).json({ error: 'Time slot already booked' });
     }
     
-    const appointment = await pool.query(`
+    const appointment = await db.query(`
       INSERT INTO appointments (user_id, specialist_id, appointment_date, duration_minutes, notes, session_type, price)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
@@ -772,7 +845,7 @@ app.post('/api/appointments', authenticateToken, async (req, res) => {
 // Get user appointments
 app.get('/api/appointments', authenticateToken, async (req, res) => {
   try {
-    const appointments = await pool.query(`
+    const appointments = await db.query(`
       SELECT a.*, s.first_name, s.last_name, s.title, s.specialization
       FROM appointments a
       JOIN specialists s ON a.specialist_id = s.id
@@ -798,7 +871,7 @@ app.post('/api/focus-sessions', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Session type and duration are required' });
     }
     
-    const session = await pool.query(`
+    const session = await db.query(`
       INSERT INTO focus_sessions (user_id, session_type, duration_minutes)
       VALUES ($1, $2, $3)
       RETURNING *
@@ -819,7 +892,7 @@ app.put('/api/focus-sessions/:id/complete', authenticateToken, async (req, res) 
     
     const points = calculatePoints('focus_session');
     
-    const session = await pool.query(`
+    const session = await db.query(`
       UPDATE focus_sessions 
       SET completed = true, interruptions = $1, notes = $2, points_earned = $3
       WHERE id = $4 AND user_id = $5
@@ -831,13 +904,13 @@ app.put('/api/focus-sessions/:id/complete', authenticateToken, async (req, res) 
     }
     
     // Award points
-    await pool.query(
+    await db.query(
       'UPDATE profiles SET points = points + $1 WHERE id = $2',
       [points, req.user.id]
     );
     
     // Record progress
-    await pool.query(`
+    await db.query(`
       INSERT INTO progress_records (user_id, activity_type, activity_id, points_earned, duration_minutes, progress_data)
       VALUES ($1, 'focus_session', $2, $3, $4, $5)
     `, [req.user.id, id, points, session.rows[0].duration_minutes, 
@@ -861,7 +934,7 @@ app.get('/api/progress', authenticateToken, async (req, res) => {
     const { days = 30 } = req.query;
     
     // Get progress records
-    const progress = await pool.query(`
+    const progress = await db.query(`
       SELECT 
         activity_type,
         COUNT(*) as activity_count,
@@ -874,7 +947,7 @@ app.get('/api/progress', authenticateToken, async (req, res) => {
     `, [req.user.id]);
     
     // Get daily activity
-    const dailyActivity = await pool.query(`
+    const dailyActivity = await db.query(`
       SELECT 
         DATE(created_at) as date,
         COUNT(*) as activities,
@@ -886,7 +959,7 @@ app.get('/api/progress', authenticateToken, async (req, res) => {
     `, [req.user.id]);
     
     // Get achievements
-    const achievements = await pool.query(`
+    const achievements = await db.query(`
       SELECT ua.*, a.name, a.description, a.icon, a.badge_color
       FROM user_achievements ua
       JOIN achievements a ON ua.achievement_id = a.id

@@ -1,24 +1,37 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useAuthStore } from '../../stores/authStore';
-import { useChatStore } from '../../stores/chatStore';
+import { useAuthStore } from '../../stores/useAuthStore';
+import { useWebSocketStore } from '../../stores/useWebSocketStore';
 import Card from '../ui/Card';
 import Input from '../ui/Input';
 import Button from '../ui/Button';
 import { Send } from 'lucide-react';
 
+interface ChatMessage {
+  id: string;
+  content: string;
+  username: string;
+  created_at: string;
+}
+
 const Chat: React.FC = () => {
   const [message, setMessage] = useState('');
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user } = useAuthStore();
-  const { messages, rooms, currentRoom, sendMessage, loadMessages, loadRooms, setCurrentRoom, subscribeToMessages } = useChatStore();
+  const { isConnected, sendMessage: sendWSMessage } = useWebSocketStore();
 
   useEffect(() => {
-    loadRooms();
-    if (currentRoom) {
-      loadMessages(currentRoom);
-      subscribeToMessages();
-    }
-  }, [currentRoom]);
+    // Load initial messages from your backend API
+    // This is a placeholder - you can implement this later
+    setMessages([
+      {
+        id: '1',
+        content: 'Welcome to MindSpark Chat!',
+        username: 'System',
+        created_at: new Date().toISOString()
+      }
+    ]);
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

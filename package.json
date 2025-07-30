@@ -1,0 +1,49 @@
+{
+  "name": "adhd-mindspark",
+  "version": "1.0.0",
+  "description": "MindSpark - A comprehensive ADHD management and focus enhancement platform",
+  "scripts": {
+    "setup": "node setup.js",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "npm run build:frontend && npm run build:backend",
+    "build:frontend": "cd frontend && npm run build",
+    "build:backend": "cd backend && npm run build",
+    "test": "npm run test:backend && npm run test:frontend",
+    "test:backend": "cd backend && npm test",
+    "test:frontend": "cd frontend && npm run test",
+    "docker:up": "cd backend && docker-compose up -d",
+    "docker:down": "cd backend && docker-compose down",
+    "clean": "rm -rf node_modules backend/node_modules frontend/node_modules",
+    "reset": "npm run clean && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/adhd-mindspark.git"
+  },
+  "keywords": [
+    "adhd",
+    "focus",
+    "productivity",
+    "mental-health",
+    "wellbeing",
+    "typescript",
+    "react",
+    "node.js",
+    "postgresql"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}

@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { NavItem } from '../../types';
 import { Link, useLocation } from 'react-router-dom';
 import { Brain, Gamepad2, CheckSquare, LibraryBig, Users, MessageCircle, LogOut } from 'lucide-react';
-import { useAuthStore } from '../../stores/authStore';
+import { useAuthStore } from '../../stores/useAuthStore';
 import AuthModal from '../auth/AuthModal';
 import Button from '../ui/Button';
 
 const Navbar: React.FC = () => {
   const location = useLocation();
-  const { user, signOut } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const [showAuthModal, setShowAuthModal] = useState(false);
   
   const navItems: NavItem[] = [
@@ -65,7 +65,7 @@ const Navbar: React.FC = () => {
             <Button
               variant="outline"
               className="ml-4"
-              onClick={() => signOut()}
+              onClick={() => logout()}
               leftIcon={<LogOut className="w-4 h-4" />}
             >
               Sign Out
