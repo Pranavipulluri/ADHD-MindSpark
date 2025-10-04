@@ -49,13 +49,22 @@ async function initializeDatabase() {
     // PostgreSQL configuration
     const { Pool } = require('pg');
     dbType = 'postgresql';
-    const pool = new Pool({
+    
+    // Use individual environment variables to avoid URL encoding issues
+    const poolConfig = {
       host: process.env.DB_HOST || 'localhost',
-      port: process.env.DB_PORT || 5432,
+      port: parseInt(process.env.DB_PORT) || 5432,
       database: process.env.DB_NAME || 'mindspark_db',
       user: process.env.DB_USER || 'postgres',
       password: process.env.DB_PASSWORD || '',
+    };
+    
+    console.log('Connecting to PostgreSQL with config:', {
+      ...poolConfig,
+      password: '***hidden***'
     });
+    
+    const pool = new Pool(poolConfig);
     
     // Create wrapper object
     db = {
@@ -111,7 +120,8 @@ async function createMigrationsTable() {
     await db.run(query);
     log.info('Migrations table ready');
   } catch (error) {
-    log.error('Failed to create migrations table:', error.message);
+    log.error('Failed to create migrations table:');
+    console.error('Error details:', error);
     throw error;
   }
 }
@@ -134,7 +144,13 @@ async function getMigrationFiles() {
   try {
     const files = await fs.readdir(migrationsDir);
     return files
-      .filter(file => file.endsWith('.sql'))
+      .filter(file => {
+        if (dbType === 'sqlite') {
+          return file.endsWith('_sqlite.sql') || (file.endsWith('.sql') && !file.includes('_sqlite') && !files.includes(file.replace('.sql', '_sqlite.sql')));
+        } else {
+          return file.endsWith('.sql') && !file.includes('_sqlite');
+        }
+      })
       .sort();
   } catch (error) {
     log.error('Failed to read migrations directory:', error.message);
@@ -219,7 +235,8 @@ async function runMigrations() {
     log.success(`Successfully executed ${pendingMigrations.length} migration(s)`);
     
   } catch (error) {
-    log.error('Migration failed:', error.message);
+    log.error('Migration failed:');
+    console.error('Error details:', error);
     process.exit(1);
   }
 }

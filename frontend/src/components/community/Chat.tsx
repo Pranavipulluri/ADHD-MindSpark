@@ -1,10 +1,11 @@
-import React, { useEffect, useState, useRef } from 'react';
+import { Send } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '../../stores/useAuthStore';
+import { useChatStore } from '../../stores/useChatStore';
 import { useWebSocketStore } from '../../stores/useWebSocketStore';
+import Button from '../ui/Button';
 import Card from '../ui/Card';
 import Input from '../ui/Input';
-import Button from '../ui/Button';
-import { Send } from 'lucide-react';
 
 interface ChatMessage {
   id: string;
@@ -15,23 +16,40 @@ interface ChatMessage {
 
 const Chat: React.FC = () => {
   const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user } = useAuthStore();
   const { isConnected, sendMessage: sendWSMessage } = useWebSocketStore();
+  const { 
+    messages, 
+    rooms, 
+    currentRoom, 
+    setCurrentRoom, 
+    loadRooms, 
+    loadMessages, 
+    sendMessage: sendChatMessage,
+    joinRoom 
+  } = useChatStore();
+
+  // Mock user for testing if no user is logged in
+  const currentUser = user || { 
+    id: 'guest', 
+    username: 'Guest User', 
+    email: 'guest@example.com' 
+  };
+
+  const currentMessages = messages[currentRoom] || [];
 
   useEffect(() => {
-    // Load initial messages from your backend API
-    // This is a placeholder - you can implement this later
-    setMessages([
-      {
-        id: '1',
-        content: 'Welcome to MindSpark Chat!',
-        username: 'System',
-        created_at: new Date().toISOString()
-      }
-    ]);
-  }, []);
+    // Load rooms on component mount
+    loadRooms();
+  }, [loadRooms]);
+
+  useEffect(() => {
+    // Load messages when room changes
+    if (currentRoom) {
+      loadMessages(currentRoom);
+    }
+  }, [currentRoom, loadMessages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -39,18 +57,29 @@ const Chat: React.FC = () => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [currentMessages]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!message.trim() || !user) return;
+    if (!message.trim()) return;
 
+    const messageText = message;
+    setMessage(''); // Clear immediately to prevent double send
+    
     try {
-      await sendMessage(message);
-      setMessage('');
+      await sendChatMessage(currentRoom, messageText);
     } catch (error) {
       console.error('Error sending message:', error);
+      setMessage(messageText); // Restore message on error
     }
+  };
+
+  const handleRoomChange = async (roomId: string) => {
+    const room = rooms.find(r => r.id === roomId);
+    if (room && !room.is_member) {
+      await joinRoom(roomId);
+    }
+    setCurrentRoom(roomId);
   };
 
   return (
@@ -67,9 +96,17 @@ const Chat: React.FC = () => {
                     ? 'bg-purple-100 text-purple-600'
                     : 'hover:bg-gray-50'
                 }`}
-                onClick={() => setCurrentRoom(room.id)}
+                onClick={() => handleRoomChange(room.id)}
               >
-                {room.name}
+                <div className="flex justify-between items-center">
+                  <span>{room.name}</span>
+                  <div className="flex flex-col items-end">
+                    <span className="text-xs text-gray-500">{room.participant_count}</span>
+                    {!room.is_member && (
+                      <span className="text-xs text-blue-500">Join</span>
+                    )}
+                  </div>
+                </div>
               </button>
             ))}
           </div>
@@ -79,24 +116,27 @@ const Chat: React.FC = () => {
       <div className="col-span-3">
         <Card className="flex flex-col h-[600px]">
           <div className="flex-1 overflow-y-auto mb-4">
-            {messages.map((msg) => (
+            {currentMessages.map((msg) => (
               <div
                 key={msg.id}
                 className={`mb-4 ${
-                  msg.user_id === user?.id ? 'text-right' : ''
+                  msg.username === currentUser?.username ? 'text-right' : ''
                 }`}
               >
                 <div
                   className={`inline-block max-w-[70%] rounded-lg p-3 ${
-                    msg.user_id === user?.id
+                    msg.username === currentUser?.username
                       ? 'bg-purple-100 text-purple-900'
                       : 'bg-gray-100'
                   }`}
                 >
                   <p className="text-sm font-medium mb-1">
-                    {msg.profiles?.username || 'Anonymous'}
+                    {msg.username}
                   </p>
                   <p>{msg.content}</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {new Date(msg.created_at).toLocaleTimeString()}
+                  </p>
                 </div>
               </div>
             ))}
@@ -109,11 +149,10 @@ const Chat: React.FC = () => {
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Type a message..."
               className="flex-1"
-              disabled={!user}
             />
             <Button
               type="submit"
-              disabled={!message.trim() || !user}
+              disabled={!message.trim()}
               leftIcon={<Send className="w-4 h-4" />}
             >
               Send

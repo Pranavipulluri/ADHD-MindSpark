@@ -1,15 +1,19 @@
+import { Brain, CheckSquare, Gamepad2, LibraryBig, LogOut, MessageCircle, Trophy, User, Users } from 'lucide-react';
 import React, { useState } from 'react';
-import { NavItem } from '../../types';
 import { Link, useLocation } from 'react-router-dom';
-import { Brain, Gamepad2, CheckSquare, LibraryBig, Users, MessageCircle, LogOut } from 'lucide-react';
 import { useAuthStore } from '../../stores/useAuthStore';
+import { usePointsStore } from '../../stores/usePointsStore';
+import { NavItem } from '../../types';
 import AuthModal from '../auth/AuthModal';
+import ProfileModal from '../profile/ProfileModal';
 import Button from '../ui/Button';
 
 const Navbar: React.FC = () => {
   const location = useLocation();
   const { user, logout } = useAuthStore();
+  const { totalPoints, level } = usePointsStore();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   
   const navItems: NavItem[] = [
     { name: 'Dashboard', path: '/', icon: 'Brain' },
@@ -62,14 +66,39 @@ const Navbar: React.FC = () => {
           })}
 
           {user ? (
-            <Button
-              variant="outline"
-              className="ml-4"
-              onClick={() => logout()}
-              leftIcon={<LogOut className="w-4 h-4" />}
-            >
-              Sign Out
-            </Button>
+            <div className="flex items-center space-x-3 ml-4">
+              {/* Points Display */}
+              <div className="flex items-center space-x-2 bg-purple-100 text-purple-700 px-3 py-1 rounded-full">
+                <Trophy className="w-4 h-4" />
+                <span className="font-semibold text-sm">{totalPoints || 0}</span>
+                <span className="text-xs">pts</span>
+              </div>
+              
+              {/* Level Display */}
+              <div className="flex items-center space-x-1 bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                <span className="text-xs font-medium">Lv.{level || 1}</span>
+              </div>
+              
+              {/* Profile Button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowProfileModal(true)}
+                leftIcon={<User className="w-4 h-4" />}
+              >
+                Profile
+              </Button>
+              
+              {/* Logout Button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => logout()}
+                leftIcon={<LogOut className="w-4 h-4" />}
+              >
+                Sign Out
+              </Button>
+            </div>
           ) : (
             <Button
               className="ml-4"
@@ -83,6 +112,13 @@ const Navbar: React.FC = () => {
 
       {showAuthModal && (
         <AuthModal onClose={() => setShowAuthModal(false)} />
+      )}
+      
+      {showProfileModal && (
+        <ProfileModal 
+          isOpen={showProfileModal} 
+          onClose={() => setShowProfileModal(false)} 
+        />
       )}
     </nav>
   );

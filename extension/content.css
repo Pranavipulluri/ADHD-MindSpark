@@ -1,0 +1,526 @@
+/* MindSpark Extension Content Styles */
+
+/* Floating Button Styles */
+#mindspark-floating-btn {
+  position: fixed !important;
+  top: 20px !important;
+  right: 20px !important;
+  width: 50px !important;
+  height: 50px !important;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  z-index: 2147483647 !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+  transition: all 0.3s ease !important;
+  border: none !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+#mindspark-floating-btn:hover {
+  transform: scale(1.1) !important;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.2) !important;
+}
+
+#mindspark-floating-btn .ms-btn-icon {
+  font-size: 24px !important;
+  color: white !important;
+}
+
+#mindspark-floating-btn .ms-btn-tooltip {
+  position: absolute !important;
+  right: 60px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  background: rgba(0,0,0,0.8) !important;
+  color: white !important;
+  padding: 8px 12px !important;
+  border-radius: 6px !important;
+  font-size: 12px !important;
+  white-space: nowrap !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity 0.3s ease !important;
+}
+
+#mindspark-floating-btn:hover .ms-btn-tooltip {
+  opacity: 1 !important;
+}
+
+/* Accessibility Panel Styles */
+#mindspark-accessibility-panel {
+  position: fixed !important;
+  top: 80px !important;
+  right: 20px !important;
+  width: 320px !important;
+  max-width: calc(100vw - 40px) !important;
+  background: white !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.1) !important;
+  z-index: 2147483646 !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  border: 1px solid #e1e5e9 !important;
+  color: #333 !important;
+}
+
+.ms-panel-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 16px 20px !important;
+  border-bottom: 1px solid #e1e5e9 !important;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: white !important;
+  border-radius: 12px 12px 0 0 !important;
+}
+
+.ms-panel-header h3 {
+  margin: 0 !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  color: white !important;
+}
+
+.ms-close-btn {
+  background: none !important;
+  border: none !important;
+  color: white !important;
+  font-size: 20px !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  width: 24px !important;
+  height: 24px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 50% !important;
+  transition: background 0.2s ease !important;
+}
+
+.ms-close-btn:hover {
+  background: rgba(255,255,255,0.1) !important;
+}
+
+.ms-panel-content {
+  padding: 20px !important;
+  max-height: 400px !important;
+  overflow-y: auto !important;
+}
+
+.ms-feature-group {
+  margin-bottom: 20px !important;
+}
+
+.ms-feature-group h4 {
+  margin: 0 0 12px 0 !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: #374151 !important;
+}
+
+.ms-feature-btn {
+  display: block !important;
+  width: 100% !important;
+  padding: 10px 12px !important;
+  margin-bottom: 8px !important;
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  font-size: 13px !important;
+  text-align: left !important;
+  transition: all 0.2s ease !important;
+  color: #374151 !important;
+  font-family: inherit !important;
+}
+
+.ms-feature-btn:hover {
+  background: #e2e8f0 !important;
+  border-color: #cbd5e0 !important;
+}
+
+.ms-points-display {
+  text-align: center !important;
+  padding: 12px !important;
+  background: #f0f9ff !important;
+  border-radius: 8px !important;
+  border: 1px solid #bae6fd !important;
+}
+
+.ms-points-label {
+  font-size: 14px !important;
+  color: #0369a1 !important;
+  font-weight: 500 !important;
+}
+
+.ms-points-value {
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: #0c4a6e !important;
+}
+
+/* Summary Panel Styles */
+#mindspark-summary-panel {
+  position: fixed !important;
+  bottom: 20px !important;
+  left: 20px !important;
+  width: 400px !important;
+  max-width: calc(100vw - 40px) !important;
+  background: white !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15) !important;
+  z-index: 2147483645 !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  border: 1px solid #e1e5e9 !important;
+  color: #333 !important;
+}
+
+.ms-summary-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 16px 20px !important;
+  border-bottom: 1px solid #e1e5e9 !important;
+  background: #f8fafc !important;
+  border-radius: 12px 12px 0 0 !important;
+}
+
+.ms-summary-header h3 {
+  margin: 0 !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  color: #374151 !important;
+}
+
+.ms-summary-content {
+  padding: 20px !important;
+  max-height: 300px !important;
+  overflow-y: auto !important;
+}
+
+.ms-summary-content p {
+  margin: 0 0 16px 0 !important;
+  line-height: 1.6 !important;
+  color: #374151 !important;
+  font-size: 14px !important;
+}
+
+.ms-summary-actions {
+  display: flex !important;
+  gap: 8px !important;
+  margin-top: 16px !important;
+}
+
+.ms-action-btn {
+  padding: 8px 12px !important;
+  background: #3b82f6 !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  font-size: 12px !important;
+  transition: background 0.2s ease !important;
+  font-family: inherit !important;
+}
+
+.ms-action-btn:hover {
+  background: #2563eb !important;
+}
+
+/* Game Overlay Styles */
+#mindspark-game-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: rgba(0,0,0,0.8) !important;
+  z-index: 2147483644 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+.ms-game-container {
+  background: white !important;
+  border-radius: 12px !important;
+  width: 90% !important;
+  max-width: 600px !important;
+  max-height: 80vh !important;
+  overflow: hidden !important;
+  color: #333 !important;
+}
+
+.ms-game-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 16px 20px !important;
+  background: #f8fafc !important;
+  border-bottom: 1px solid #e1e5e9 !important;
+}
+
+.ms-game-header h3 {
+  margin: 0 !important;
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  color: #374151 !important;
+}
+
+.ms-game-stats {
+  display: flex !important;
+  gap: 20px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: #6b7280 !important;
+}
+
+/* Memory Game Styles */
+.ms-memory-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 10px !important;
+  padding: 20px !important;
+}
+
+.ms-memory-card {
+  aspect-ratio: 1 !important;
+  position: relative !important;
+  cursor: pointer !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  perspective: 1000px !important;
+}
+
+.ms-card-front, .ms-card-back {
+  position: absolute !important;
+  width: 100% !important;
+  height: 100% !important;
+  backface-visibility: hidden !important;
+  transition: transform 0.3s ease !important;
+  border-radius: 8px !important;
+}
+
+.ms-card-front {
+  background: #e2e8f0 !important;
+  border: 2px solid #cbd5e0 !important;
+}
+
+.ms-card-back {
+  transform: rotateY(180deg) !important;
+}
+
+.ms-memory-card.flipped .ms-card-front {
+  transform: rotateY(180deg) !important;
+}
+
+.ms-memory-card.flipped .ms-card-back {
+  transform: rotateY(0deg) !important;
+}
+
+/* Focus Game Styles */
+.ms-focus-game {
+  position: relative !important;
+  height: 400px !important;
+  background: #f0f9ff !important;
+  margin: 20px !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+}
+
+.ms-target {
+  position: absolute !important;
+  width: 50px !important;
+  height: 50px !important;
+  background: #ef4444 !important;
+  border-radius: 50% !important;
+  cursor: pointer !important;
+  transition: all 0.1s ease !important;
+}
+
+.ms-target:hover {
+  transform: scale(1.1) !important;
+}
+
+.ms-instructions {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  font-size: 18px !important;
+  color: #64748b !important;
+  pointer-events: none !important;
+}
+
+/* Breathing Exercise Styles */
+.ms-breathing-container {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 400px !important;
+  padding: 40px !important;
+}
+
+.ms-breathing-circle {
+  width: 200px !important;
+  height: 200px !important;
+  border: 3px solid #3b82f6 !important;
+  border-radius: 50% !important;
+  margin-bottom: 30px !important;
+  transition: transform 4s ease-in-out !important;
+}
+
+.ms-breathing-circle.inhale {
+  transform: scale(1.3) !important;
+  background: rgba(59, 130, 246, 0.1) !important;
+}
+
+.ms-breathing-circle.exhale {
+  transform: scale(1) !important;
+  background: transparent !important;
+}
+
+.ms-breathing-text {
+  font-size: 24px !important;
+  font-weight: 600 !important;
+  color: #374151 !important;
+  margin-bottom: 10px !important;
+}
+
+.ms-breathing-counter {
+  font-size: 18px !important;
+  color: #6b7280 !important;
+}
+
+/* Notification Styles */
+.ms-notification {
+  position: fixed !important;
+  top: 20px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  padding: 12px 20px !important;
+  border-radius: 8px !important;
+  color: white !important;
+  font-weight: 500 !important;
+  z-index: 2147483647 !important;
+  animation: slideDown 0.3s ease !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-size: 14px !important;
+}
+
+.ms-notification-info { 
+  background: #3b82f6 !important; 
+}
+
+.ms-notification-success { 
+  background: #10b981 !important; 
+}
+
+.ms-notification-error { 
+  background: #ef4444 !important; 
+}
+
+@keyframes slideDown {
+  from { 
+    transform: translateX(-50%) translateY(-100%) !important; 
+  }
+  to { 
+    transform: translateX(-50%) translateY(0) !important; 
+  }
+}
+
+/* Dyslexia-friendly font override */
+.mindspark-dyslexia-mode * {
+  font-family: 'OpenDyslexic', 'Comic Sans MS', cursive !important;
+  line-height: 1.6 !important;
+  letter-spacing: 0.05em !important;
+}
+
+.mindspark-dyslexia-mode p, 
+.mindspark-dyslexia-mode div, 
+.mindspark-dyslexia-mode span, 
+.mindspark-dyslexia-mode li, 
+.mindspark-dyslexia-mode td, 
+.mindspark-dyslexia-mode th {
+  background-color: #fefefe !important;
+  color: #2d3748 !important;
+}
+
+.mindspark-dyslexia-mode a {
+  color: #3182ce !important;
+  text-decoration: underline !important;
+}
+
+.mindspark-dyslexia-mode h1, 
+.mindspark-dyslexia-mode h2, 
+.mindspark-dyslexia-mode h3, 
+.mindspark-dyslexia-mode h4, 
+.mindspark-dyslexia-mode h5, 
+.mindspark-dyslexia-mode h6 {
+  color: #1a202c !important;
+  font-weight: bold !important;
+}
+
+/* High contrast mode */
+.mindspark-high-contrast * {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+.mindspark-high-contrast a {
+  color: #ffff00 !important;
+}
+
+.mindspark-high-contrast img {
+  filter: contrast(150%) brightness(150%) !important;
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 480px) {
+  #mindspark-accessibility-panel {
+    width: calc(100vw - 20px) !important;
+    right: 10px !important;
+    top: 70px !important;
+  }
+  
+  #mindspark-summary-panel {
+    width: calc(100vw - 20px) !important;
+    left: 10px !important;
+    bottom: 10px !important;
+  }
+  
+  .ms-game-container {
+    width: 95% !important;
+    margin: 10px !important;
+  }
+  
+  .ms-memory-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    padding: 15px !important;
+  }
+}
+
+/* Ensure our elements don't interfere with page layout */
+#mindspark-floating-btn,
+#mindspark-accessibility-panel,
+#mindspark-summary-panel,
+#mindspark-game-overlay {
+  box-sizing: border-box !important;
+  line-height: normal !important;
+  text-align: left !important;
+  text-transform: none !important;
+  text-decoration: none !important;
+  text-shadow: none !important;
+  font-style: normal !important;
+  font-variant: normal !important;
+  font-stretch: normal !important;
+  vertical-align: baseline !important;
+  white-space: normal !important;
+  word-spacing: normal !important;
+  letter-spacing: normal !important;
+}

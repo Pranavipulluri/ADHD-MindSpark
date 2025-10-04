@@ -1,181 +1,105 @@
-// src/stores/useAuthStore.ts
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { User, AuthResponse } from '../types/api';
-import { apiClient, APIError } from '../lib/api';
+import { apiClient } from '../lib/api';
+
+interface User {
+  id: string;
+  email: string;
+  username: string;
+  points: number;
+  level: number;
+  avatar_url?: string;
+  streak_days?: number;
+}
 
 interface AuthState {
   user: User | null;
-  token: string | null;
-  isLoading: boolean;
-  error: string | null;
   isAuthenticated: boolean;
-}
-
-interface AuthActions {
+  isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (userData: {
-    username: string;
-    email: string;
-    password: string;
-    dateOfBirth: string;
-    parentEmail: string;
-  }) => Promise<void>;
-  logout: () => Promise<void>;
-  getCurrentUser: () => Promise<void>;
-  clearError: () => void;
-  setLoading: (loading: boolean) => void;
+  register: (userData: any) => Promise<void>;
+  logout: () => void;
+  updateUser: (userData: Partial<User>) => void;
+  refreshUser: () => Promise<void>;
 }
 
-type AuthStore = AuthState & AuthActions;
-
-export const useAuthStore = create<AuthStore>()(
+export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
-      // State
-      user: null,
-      token: null,
+      user: {
+        id: 'demo-user',
+        email: 'demo@mindspark.com',
+        username: 'Demo User',
+        points: 100,
+        level: 2
+      },
+      isAuthenticated: true,
       isLoading: false,
-      error: null,
-      isAuthenticated: false,
 
-      // Actions
       login: async (email: string, password: string) => {
-        set({ isLoading: true, error: null });
-        
+        set({ isLoading: true });
         try {
-          const response: AuthResponse = await apiClient.login(email, password);
-          
+          const response = await apiClient.login(email, password);
           set({
             user: response.user,
-            token: response.token,
             isAuthenticated: true,
             isLoading: false,
-            error: null,
           });
         } catch (error) {
-          const errorMessage = error instanceof APIError 
-            ? error.message 
-            : 'Login failed. Please try again.';
-          
-          set({
-            user: null,
-            token: null,
-            isAuthenticated: false,
-            isLoading: false,
-            error: errorMessage,
-          });
-          
+          set({ isLoading: false });
           throw error;
         }
       },
 
-      register: async (userData: {
-        username: string;
-        email: string;
-        password: string;
-        dateOfBirth: string;
-        parentEmail: string;
-      }) => {
-        set({ isLoading: true, error: null });
-        
+      register: async (userData: any) => {
+        set({ isLoading: true });
         try {
-          const response: AuthResponse = await apiClient.register(userData);
-          
+          const response = await apiClient.register(userData);
           set({
             user: response.user,
-            token: response.token,
             isAuthenticated: true,
             isLoading: false,
-            error: null,
           });
         } catch (error) {
-          const errorMessage = error instanceof APIError 
-            ? error.message 
-            : 'Registration failed. Please try again.';
-          
-          set({
-            user: null,
-            token: null,
-            isAuthenticated: false,
-            isLoading: false,
-            error: errorMessage,
-          });
-          
+          set({ isLoading: false });
           throw error;
         }
       },
 
-      logout: async () => {
-        set({ isLoading: true });
-        
-        try {
-          await apiClient.logout();
-        } catch (error) {
-          // Even if logout fails on server, clear local state
-          console.error('Logout error:', error);
-        } finally {
+      logout: () => {
+        apiClient.logout();
+        set({
+          user: null,
+          isAuthenticated: false,
+        });
+      },
+
+      updateUser: (userData: Partial<User>) => {
+        const currentUser = get().user;
+        if (currentUser) {
           set({
-            user: null,
-            token: null,
-            isAuthenticated: false,
-            isLoading: false,
-            error: null,
+            user: { ...currentUser, ...userData },
           });
         }
       },
 
-      getCurrentUser: async () => {
-        const { token } = get();
-        
-        if (!token) {
-          set({ isAuthenticated: false });
-          return;
-        }
-
-        set({ isLoading: true });
-        
+      refreshUser: async () => {
         try {
           const response = await apiClient.getCurrentUser();
-          
-          set({
-            user: response.user,
-            isAuthenticated: true,
-            isLoading: false,
-            error: null,
-          });
+          set({ user: response.user });
         } catch (error) {
-          // Token is invalid, clear auth state
-          set({
-            user: null,
-            token: null,
-            isAuthenticated: false,
-            isLoading: false,
-            error: null,
-          });
-          
-          // Clear token from API client
-          apiClient.setToken(null);
+          console.error('Failed to refresh user:', error);
+          // If token is invalid, logout
+          get().logout();
         }
       },
-
-      clearError: () => set({ error: null }),
-
-      setLoading: (loading: boolean) => set({ isLoading: loading }),
     }),
     {
       name: 'auth-storage',
-      partialize: (state: AuthStore) => ({
+      partialize: (state) => ({
         user: state.user,
-        token: state.token,
         isAuthenticated: state.isAuthenticated,
       }),
-      onRehydrateStorage: () => (state: AuthStore | undefined) => {
-        // Set token in API client when hydrating from storage
-        if (state?.token) {
-          apiClient.setToken(state.token);
-        }
-      },
     }
   )
 );

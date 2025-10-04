@@ -1,40 +1,53 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Header from '../components/dashboard/Header';
 import TaskForm from '../components/tasks/TaskForm';
 import TaskList from '../components/tasks/TaskList';
+import { usePointsStore } from '../stores/usePointsStore';
+import { useTasksStore } from '../stores/useTasksStore';
 import { Task } from '../types';
-import { v4 as uuidv4 } from 'uuid';
 
 const Tasks: React.FC = () => {
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const { tasks, loadTasks, createTask, completeTask } = useTasksStore();
+  const { addPoints } = usePointsStore();
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
-  const addTask = (taskData: { 
+  useEffect(() => {
+    loadTasks();
+  }, [loadTasks]);
+
+  const addTask = async (taskData: { 
     title: string; 
     description: string; 
     priority: string; 
-    status: string 
+    category: string;
   }) => {
-    const newTask: Task = {
-      id: uuidv4(),
+    await createTask({
       title: taskData.title,
       description: taskData.description,
-      priority: taskData.priority as 'Low' | 'Medium' | 'High',
-      status: taskData.status as 'Must-Do' | 'Can-Wait' | 'Done',
-      createdAt: new Date(),
-    };
-    
-    setTasks([...tasks, newTask]);
+      priority: taskData.priority as 'low' | 'medium' | 'high',
+      category: taskData.category as 'daily' | 'academic' | 'chores' | 'health' | 'social' | 'creative',
+      status: 'pending'
+    });
   };
 
   const handleTaskClick = (task: Task) => {
-    // In a real app, this would open a task detail/edit modal
-    console.log('Task clicked:', task);
+    setSelectedTask(task);
+  };
+
+  const handleCompleteTask = async (task: Task) => {
+    await completeTask(task.id);
+    
+    // Award points based on priority
+    const points = task.priority === 'high' ? 20 : task.priority === 'medium' ? 15 : 10;
+    addPoints(points, 'task_completed', `Completed ${task.priority} priority task: ${task.title}`);
+    
+    setSelectedTask(null);
   };
 
   // Filter tasks by status
-  const mustDoTasks = tasks.filter(task => task.status === 'Must-Do');
-  const canWaitTasks = tasks.filter(task => task.status === 'Can-Wait');
-  const doneTasks = tasks.filter(task => task.status === 'Done');
+  const pendingTasks = tasks.filter(task => task.status === 'pending');
+  const inProgressTasks = tasks.filter(task => task.status === 'in_progress');
+  const completedTasks = tasks.filter(task => task.status === 'completed');
 
   return (
     <div className="py-8">
@@ -46,29 +59,69 @@ const Tasks: React.FC = () => {
       <div className="max-w-6xl mx-auto px-4">
         <TaskForm onAddTask={addTask} />
         
-        <div className="flex flex-col md:flex-row gap-6">
+        <div className="grid md:grid-cols-3 gap-6">
           <TaskList 
-            title="Must-Do" 
-            tasks={mustDoTasks} 
+            title="Pending"
+            tasks={pendingTasks}
+            color="#FF6B6B"
+            count={pendingTasks.length}
+            onTaskClick={handleTaskClick}
+          />
+          
+          <TaskList 
+            title="In Progress"
+            tasks={inProgressTasks}
             color="#FFB84C"
-            count={mustDoTasks.length}
+            count={inProgressTasks.length}
             onTaskClick={handleTaskClick}
           />
+          
           <TaskList 
-            title="Can-Wait" 
-            tasks={canWaitTasks} 
-            color="#4D96FF"
-            count={canWaitTasks.length}
-            onTaskClick={handleTaskClick}
-          />
-          <TaskList 
-            title="Done" 
-            tasks={doneTasks} 
+            title="Completed"
+            tasks={completedTasks}
             color="#4CAF50"
-            count={doneTasks.length}
+            count={completedTasks.length}
             onTaskClick={handleTaskClick}
           />
         </div>
+
+        {/* Task Detail Modal */}
+        {selectedTask && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <h3 className="text-xl font-bold mb-4">{selectedTask.title}</h3>
+              {selectedTask.description && (
+                <p className="text-gray-600 mb-4">{selectedTask.description}</p>
+              )}
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-sm text-gray-500">Priority:</span>
+                <span className={`px-2 py-1 rounded text-sm ${
+                  selectedTask.priority === 'high' ? 'bg-red-100 text-red-800' :
+                  selectedTask.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                  'bg-green-100 text-green-800'
+                }`}>
+                  {selectedTask.priority}
+                </span>
+              </div>
+              <div className="flex gap-3">
+                {selectedTask.status !== 'completed' && (
+                  <button
+                    onClick={() => handleCompleteTask(selectedTask)}
+                    className="flex-1 bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600"
+                  >
+                    Mark Complete (+{selectedTask.priority === 'high' ? 20 : selectedTask.priority === 'medium' ? 15 : 10} points)
+                  </button>
+                )}
+                <button
+                  onClick={() => setSelectedTask(null)}
+                  className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,0 +1,37 @@
+{
+  "name": "mindspark-browser-extension",
+  "version": "1.0.0",
+  "description": "MindSpark Browser Extension - Adaptive learning tools for neurodivergent learners",
+  "main": "background.js",
+  "scripts": {
+    "build": "node build.js",
+    "dev": "node build.js && echo 'Extension built for development'",
+    "package": "npm run build && echo 'Extension packages created'",
+    "clean": "rm -rf build dist",
+    "lint": "eslint *.js",
+    "test": "echo 'Extension tests would go here'"
+  },
+  "keywords": [
+    "browser-extension",
+    "accessibility",
+    "dyslexia",
+    "neurodivergent",
+    "learning",
+    "ai",
+    "education"
+  ],
+  "author": "MindSpark Team",
+  "license": "MIT",
+  "devDependencies": {
+    "archiver": "^5.3.1",
+    "eslint": "^8.55.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/mindspark-extension.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/mindspark-extension/issues"
+  },
+  "homepage": "https://mindspark.app"
+}

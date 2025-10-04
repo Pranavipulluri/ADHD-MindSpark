@@ -12,6 +12,7 @@ const specialistRoutes = require('./specialists');
 const appointmentRoutes = require('./appointments');
 const focusSessionRoutes = require('./focusSessions');
 const progressRoutes = require('./progress');
+const aiRoutes = require('./ai');
 
 const router = express.Router();
 
@@ -35,7 +36,8 @@ router.get('/', (req, res) => {
       specialists: '/api/specialists',
       appointments: '/api/appointments',
       'focus-sessions': '/api/focus-sessions',
-      progress: '/api/progress'
+      progress: '/api/progress',
+      ai: '/api/ai'
     },
     timestamp: new Date().toISOString()
   });
@@ -52,5 +54,6 @@ router.use('/specialists', specialistRoutes);
 router.use('/appointments', appointmentRoutes);
 router.use('/focus-sessions', focusSessionRoutes);
 router.use('/progress', progressRoutes);
+router.use('/ai', aiRoutes);
 
 module.exports = router;

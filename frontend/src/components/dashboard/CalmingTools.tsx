@@ -1,7 +1,9 @@
-import React from 'react';
-import Card from '../ui/Card';
-import Button from '../ui/Button';
 import { Clock, Flower } from 'lucide-react';
+import React, { useState } from 'react';
+import BreathingExercise from '../games/BreathingExercise';
+import FocusTimer from '../games/FocusTimer';
+import Button from '../ui/Button';
+import Card from '../ui/Card';
 
 interface CalmingToolProps {
   title: string;
@@ -74,25 +76,40 @@ const CalmingTool: React.FC<CalmingToolProps> = ({
 };
 
 const CalmingTools: React.FC = () => {
+  const [showBreathing, setShowBreathing] = useState(false);
+  const [showFocusTimer, setShowFocusTimer] = useState(false);
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-      <CalmingTool
-        title="Calm Down Corner"
-        description="Click the circle and breathe with me!"
-        icon={<Flower className="w-5 h-5 text-white" />}
-        iconColor="#FF9FF3"
-        buttonText="Start Breathing"
-        onClick={() => console.log("Start breathing exercise")}
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+        <CalmingTool
+          title="Calm Down Corner"
+          description="Click the circle and breathe with me!"
+          icon={<Flower className="w-5 h-5 text-white" />}
+          iconColor="#FF9FF3"
+          buttonText="Start Breathing"
+          onClick={() => setShowBreathing(true)}
+        />
+        <CalmingTool
+          title="Focus Time"
+          description="Let's focus together!"
+          icon={<Clock className="w-5 h-5 text-white" />}
+          iconColor="#7BD3F7"
+          buttonText="Start Timer"
+          onClick={() => setShowFocusTimer(true)}
+        />
+      </div>
+
+      <BreathingExercise 
+        isOpen={showBreathing} 
+        onClose={() => setShowBreathing(false)} 
       />
-      <CalmingTool
-        title="Focus Time"
-        description="Let's focus together!"
-        icon={<Clock className="w-5 h-5 text-white" />}
-        iconColor="#7BD3F7"
-        buttonText="Start Timer"
-        onClick={() => console.log("Start focus timer")}
+      
+      <FocusTimer 
+        isOpen={showFocusTimer} 
+        onClose={() => setShowFocusTimer(false)} 
       />
-    </div>
+    </>
   );
 };
 

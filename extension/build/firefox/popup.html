@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MindSpark Assistant</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Login Screen -->
+    <div id="login-screen" class="screen">
+      <div class="header">
+        <div class="logo">🧠</div>
+        <h1>MindSpark</h1>
+        <p>Your adaptive learning companion</p>
+      </div>
+      
+      <form id="login-form" class="form">
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" required>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Sign In</button>
+        
+        <div class="form-footer">
+          <a href="#" id="register-link">Create Account</a>
+        </div>
+      </form>
+      
+      <div id="login-error" class="error-message" style="display: none;"></div>
+    </div>
+    
+    <!-- Register Screen -->
+    <div id="register-screen" class="screen" style="display: none;">
+      <div class="header">
+        <button id="back-to-login" class="back-btn">←</button>
+        <h2>Create Account</h2>
+      </div>
+      
+      <form id="register-form" class="form">
+        <div class="form-group">
+          <label for="reg-username">Username</label>
+          <input type="text" id="reg-username" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="reg-email">Email</label>
+          <input type="email" id="reg-email" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="reg-password">Password</label>
+          <input type="password" id="reg-password" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="date-of-birth">Date of Birth</label>
+          <input type="date" id="date-of-birth">
+        </div>
+        
+        <div class="form-group">
+          <label for="parent-email">Parent Email (Optional)</label>
+          <input type="email" id="parent-email">
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Create Account</button>
+      </form>
+      
+      <div id="register-error" class="error-message" style="display: none;"></div>
+    </div>
+    
+    <!-- Main Dashboard -->
+    <div id="dashboard-screen" class="screen" style="display: none;">
+      <div class="header">
+        <div class="user-info">
+          <div class="avatar" id="user-avatar">👤</div>
+          <div class="user-details">
+            <div class="username" id="username">Loading...</div>
+            <div class="points">
+              <span class="points-value" id="points-value">0</span>
+              <span class="points-label">points</span>
+            </div>
+          </div>
+        </div>
+        <button id="logout-btn" class="logout-btn">⚙️</button>
+      </div>
+      
+      <div class="dashboard-content">
+        <!-- Quick Actions -->
+        <div class="section">
+          <h3>🚀 Quick Actions</h3>
+          <div class="action-grid">
+            <button class="action-btn" data-action="summarize-page">
+              <span class="action-icon">📝</span>
+              <span class="action-text">Summarize Page</span>
+            </button>
+            <button class="action-btn" data-action="dyslexia-mode">
+              <span class="action-icon">👁️</span>
+              <span class="action-text">Dyslexia Mode</span>
+            </button>
+            <button class="action-btn" data-action="read-aloud">
+              <span class="action-icon">🔊</span>
+              <span class="action-text">Read Aloud</span>
+            </button>
+            <button class="action-btn" data-action="focus-timer">
+              <span class="action-icon">⏰</span>
+              <span class="action-text">Focus Timer</span>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Brain Games -->
+        <div class="section">
+          <h3>🎮 Brain Games</h3>
+          <div class="games-grid">
+            <button class="game-btn" data-game="memory">
+              <span class="game-icon">🧩</span>
+              <span class="game-name">Memory</span>
+              <span class="game-points">+10 pts</span>
+            </button>
+            <button class="game-btn" data-game="focus">
+              <span class="game-icon">🎯</span>
+              <span class="game-name">Focus</span>
+              <span class="game-points">+15 pts</span>
+            </button>
+            <button class="game-btn" data-game="breathing">
+              <span class="game-icon">🫁</span>
+              <span class="game-name">Breathing</span>
+              <span class="game-points">+8 pts</span>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Today's Progress -->
+        <div class="section">
+          <h3>📊 Today's Progress</h3>
+          <div class="progress-stats">
+            <div class="stat">
+              <div class="stat-value" id="pages-read">0</div>
+              <div class="stat-label">Pages Read</div>
+            </div>
+            <div class="stat">
+              <div class="stat-value" id="games-played">0</div>
+              <div class="stat-label">Games Played</div>
+            </div>
+            <div class="stat">
+              <div class="stat-value" id="focus-time">0</div>
+              <div class="stat-label">Focus Time</div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Recent Achievements -->
+        <div class="section">
+          <h3>🏆 Recent Achievements</h3>
+          <div id="achievements-list" class="achievements-list">
+            <div class="no-achievements">Complete activities to earn achievements!</div>
+          </div>
+        </div>
+        
+        <!-- Settings -->
+        <div class="section">
+          <h3>⚙️ Preferences</h3>
+          <div class="preferences">
+            <label class="preference-item">
+              <input type="checkbox" id="auto-summarize">
+              <span class="checkmark"></span>
+              Auto-summarize pages
+            </label>
+            <label class="preference-item">
+              <input type="checkbox" id="dyslexia-default">
+              <span class="checkmark"></span>
+              Enable dyslexia mode by default
+            </label>
+            <label class="preference-item">
+              <input type="checkbox" id="reading-reminders">
+              <span class="checkmark"></span>
+              Reading break reminders
+            </label>
+          </div>
+        </div>
+      </div>
+      
+      <div class="footer">
+        <button id="open-website" class="btn btn-secondary">Open MindSpark Website</button>
+      </div>
+    </div>
+    
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="screen" style="display: none;">
+      <div class="loading-spinner"></div>
+      <p>Loading...</p>
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>

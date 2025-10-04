@@ -1,12 +1,13 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Route, BrowserRouter as Router, Routes } from 'react-router-dom';
+import './App.css';
 import Navbar from './components/layout/Navbar';
+import NotificationSystem from './components/ui/NotificationSystem';
+import Community from './pages/Community';
 import Dashboard from './pages/Dashboard';
 import Games from './pages/Games';
-import Tasks from './pages/Tasks';
 import Library from './pages/Library';
 import Specialists from './pages/Specialists';
-import Community from './pages/Community';
-import './App.css';
+import Tasks from './pages/Tasks';
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
             <Route path="/community" element={<Community />} />
           </Routes>
         </div>
+        <NotificationSystem />
       </div>
     </Router>
   );

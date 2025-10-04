@@ -1,21 +1,21 @@
+import { Plus } from 'lucide-react';
 import React, { useState } from 'react';
+import Button from '../ui/Button';
 import Card from '../ui/Card';
 import Input from '../ui/Input';
-import TextArea from '../ui/TextArea';
 import Select from '../ui/Select';
-import Button from '../ui/Button';
-import { Plus } from 'lucide-react';
 import Star from '../ui/Star';
+import TextArea from '../ui/TextArea';
 
 interface TaskFormProps {
-  onAddTask: (task: { title: string; description: string; priority: string; status: string }) => void;
+  onAddTask: (task: { title: string; description: string; priority: string; category: string }) => void;
 }
 
 const TaskForm: React.FC<TaskFormProps> = ({ onAddTask }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [priority, setPriority] = useState('Medium');
-  const [status, setStatus] = useState('Must-Do');
+  const [priority, setPriority] = useState('medium');
+  const [category, setCategory] = useState('daily');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,14 +25,14 @@ const TaskForm: React.FC<TaskFormProps> = ({ onAddTask }) => {
       title,
       description,
       priority,
-      status,
+      category,
     });
     
     // Reset form
     setTitle('');
     setDescription('');
-    setPriority('Medium');
-    setStatus('Must-Do');
+    setPriority('medium');
+    setCategory('daily');
   };
 
   return (
@@ -57,9 +57,9 @@ const TaskForm: React.FC<TaskFormProps> = ({ onAddTask }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <Select
             options={[
-              { value: 'Low', label: 'Low Priority' },
-              { value: 'Medium', label: 'Medium Priority' },
-              { value: 'High', label: 'High Priority' },
+              { value: 'low', label: 'Low Priority' },
+              { value: 'medium', label: 'Medium Priority' },
+              { value: 'high', label: 'High Priority' },
             ]}
             value={priority}
             onChange={(e) => setPriority(e.target.value)}
@@ -67,11 +67,15 @@ const TaskForm: React.FC<TaskFormProps> = ({ onAddTask }) => {
           
           <Select
             options={[
-              { value: 'Must-Do', label: 'Must-Do' },
-              { value: 'Can-Wait', label: 'Can-Wait' },
+              { value: 'daily', label: 'Daily Tasks' },
+              { value: 'academic', label: 'Academic' },
+              { value: 'chores', label: 'Chores' },
+              { value: 'health', label: 'Health' },
+              { value: 'social', label: 'Social' },
+              { value: 'creative', label: 'Creative' },
             ]}
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
           />
         </div>
         

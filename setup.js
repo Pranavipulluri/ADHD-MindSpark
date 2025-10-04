@@ -108,9 +108,29 @@ async function setupProject() {
     console.log(`2. Run: ${colors.yellow}cd backend && npm run docker:up${colors.reset}`);
     console.log(`3. Start frontend: ${colors.yellow}cd frontend && npm run dev${colors.reset}`);
     
+    // Setup extension if directory exists
+    const extensionDir = path.join(rootDir, 'extension');
+    if (fs.existsSync(extensionDir)) {
+      log.title('🧩 Setting up Browser Extension');
+      try {
+        runCommand('npm install', extensionDir, 'Installing extension dependencies...');
+        runCommand('npm run build', extensionDir, 'Building extension packages...');
+        log.success('Extension setup completed');
+        
+        console.log(`\n${colors.cyan}Browser Extension:${colors.reset}`);
+        console.log(`1. Chrome: Go to chrome://extensions/, enable Developer mode`);
+        console.log(`2. Click "Load unpacked" and select: ${colors.yellow}extension/dist/mindspark-dev${colors.reset}`);
+        console.log(`3. Firefox: Go to about:debugging, click "Load Temporary Add-on"`);
+        console.log(`4. Select: ${colors.yellow}extension/dist/mindspark-dev/manifest.json${colors.reset}`);
+      } catch (error) {
+        log.warning('Extension setup failed (optional component)');
+      }
+    }
+
     console.log(`\n${colors.cyan}Testing:${colors.reset}`);
     console.log(`• Backend tests: ${colors.yellow}cd backend && npm test${colors.reset}`);
     console.log(`• Frontend lint: ${colors.yellow}cd frontend && npm run lint${colors.reset}`);
+    console.log(`• Extension build: ${colors.yellow}cd extension && npm run build${colors.reset}`);
     
     console.log(`\n${colors.magenta}Happy coding! 🚀${colors.reset}`);
 

@@ -1,77 +1,64 @@
-// src/lib/api.ts
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3005';
+// API client for MindSpark backend
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-class APIError extends Error {
-  constructor(message: string, public status: number, public details?: any) {
+export class APIError extends Error {
+  constructor(public status: number, message: string) {
     super(message);
     this.name = 'APIError';
   }
 }
 
 class APIClient {
-  private baseURL: string;
   private token: string | null = null;
 
-  constructor(baseURL: string = API_BASE_URL) {
-    this.baseURL = baseURL;
-    this.token = localStorage.getItem('auth_token');
+  constructor() {
+    // Load token from localStorage on initialization
+    this.token = localStorage.getItem('token');
+    
+    // For demo purposes, create a mock token if none exists
+    if (!this.token) {
+      this.token = 'demo-token-' + Date.now();
+      localStorage.setItem('token', this.token);
+    }
   }
 
   setToken(token: string | null) {
     this.token = token;
     if (token) {
-      localStorage.setItem('auth_token', token);
+      localStorage.setItem('token', token);
     } else {
-      localStorage.removeItem('auth_token');
+      localStorage.removeItem('token');
     }
   }
 
-  private async request<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
-    const url = `${this.baseURL}${endpoint}`;
+  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    const url = `${API_BASE_URL}/api${endpoint}`;
     
-    const headers: Record<string, string> = {
+    const headers: HeadersInit = {
       'Content-Type': 'application/json',
-      ...options.headers as Record<string, string>,
+      ...options.headers,
     };
 
     if (this.token) {
       headers.Authorization = `Bearer ${this.token}`;
     }
 
-    try {
-      const response = await fetch(url, {
-        ...options,
-        headers,
-      });
+    const response = await fetch(url, {
+      ...options,
+      headers,
+    });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new APIError(
-          errorData.message || 'Request failed',
-          response.status,
-          errorData
-        );
-      }
-
-      return await response.json();
-    } catch (error) {
-      if (error instanceof APIError) {
-        throw error;
-      }
-      throw new APIError('Network error', 0, error);
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Network error' }));
+      throw new APIError(response.status, errorData.error || 'Request failed');
     }
+
+    return response.json();
   }
 
-  // Auth methods
+  // Auth endpoints
   async login(email: string, password: string) {
-    const response = await this.request<{
-      success: boolean;
-      user: any;
-      token: string;
-    }>('/api/auth/login', {
+    const response = await this.request<any>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
@@ -90,11 +77,7 @@ class APIClient {
     dateOfBirth: string;
     parentEmail: string;
   }) {
-    const response = await this.request<{
-      success: boolean;
-      user: any;
-      token: string;
-    }>('/api/auth/register', {
+    const response = await this.request<any>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(userData),
     });
@@ -107,225 +90,207 @@ class APIClient {
   }
 
   async logout() {
-    await this.request('/api/auth/logout', {
-      method: 'POST',
-    });
-    this.setToken(null);
+    try {
+      await this.request('/auth/logout', { method: 'POST' });
+    } finally {
+      this.setToken(null);
+    }
   }
 
   async getCurrentUser() {
-    return this.request<{ success: boolean; user: any }>('/api/auth/me');
+    return this.request<any>('/auth/profile');
   }
 
-  // Task methods
-  async getTasks(filters?: {
-    status?: string;
-    category?: string;
-    priority?: string;
-    page?: number;
-    limit?: number;
-  }) {
-    const params = new URLSearchParams();
-    if (filters) {
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined) {
-          params.append(key, String(value));
-        }
-      });
-    }
-    
-    const query = params.toString();
-    return this.request<{
-      success: boolean;
-      tasks: any[];
-      pagination: any;
-    }>(`/api/tasks${query ? `?${query}` : ''}`);
+  // Tasks endpoints
+  async getTasks() {
+    return this.request<any>('/tasks');
   }
 
   async createTask(task: {
     title: string;
     description?: string;
-    category: string;
-    priority?: string;
-    dueDate?: string;
-    estimatedDuration?: number;
-    pointsReward?: number;
+    priority: string;
+    due_date?: string;
   }) {
-    return this.request<{ success: boolean; task: any }>('/api/tasks', {
+    return this.request<any>('/tasks', {
       method: 'POST',
       body: JSON.stringify(task),
     });
   }
 
-  async updateTask(taskId: string, updates: any) {
-    return this.request<{ success: boolean; task: any }>(`/api/tasks/${taskId}`, {
+  async updateTask(id: string, updates: any) {
+    return this.request<any>(`/tasks/${id}`, {
       method: 'PUT',
       body: JSON.stringify(updates),
     });
   }
 
-  async deleteTask(taskId: string) {
-    return this.request<{ success: boolean }>(`/api/tasks/${taskId}`, {
+  async deleteTask(id: string) {
+    return this.request<any>(`/tasks/${id}`, {
       method: 'DELETE',
     });
   }
 
-  async completeTask(taskId: string) {
-    return this.request<{ success: boolean; task: any; pointsEarned: number }>(
-      `/api/tasks/${taskId}/complete`,
-      { method: 'POST' }
-    );
-  }
-
-  // Game methods
-  async getGames() {
-    return this.request<{ success: boolean; games: any[] }>('/api/games');
-  }
-
-  async submitGameScore(gameId: string, scoreData: {
-    score: number;
-    accuracy?: number;
-    levelReached?: number;
-    completionTime?: number;
-    difficulty?: string;
-  }) {
-    return this.request<{ 
-      success: boolean; 
-      gameScore: any; 
-      pointsEarned: number;
-      newLevel?: number;
-    }>('/api/games/scores', {
-      method: 'POST',
-      body: JSON.stringify({ gameId, ...scoreData }),
-    });
-  }
-
-  async getGameScores(gameId?: string) {
-    const endpoint = gameId ? `/api/games/${gameId}/scores` : '/api/games/scores';
-    return this.request<{ success: boolean; scores: any[] }>(endpoint);
-  }
-
-  // Mood methods
-  async getMoodEntries(timeframe?: string) {
-    const params = timeframe ? `?timeframe=${timeframe}` : '';
-    return this.request<{ success: boolean; moods: any[] }>(`/api/mood${params}`);
-  }
-
-  async createMoodEntry(mood: {
-    moodType: string;
-    moodIntensity: number;
+  // Mood endpoints
+  async addMoodEntry(mood: {
+    mood_type: string;
+    mood_intensity?: number;
     notes?: string;
-    triggers?: string[];
   }) {
-    return this.request<{ success: boolean; mood: any }>('/api/mood', {
+    return this.request<any>('/mood', {
       method: 'POST',
       body: JSON.stringify(mood),
     });
   }
 
-  // Progress methods
-  async getProgress(timeframe?: string) {
-    const params = timeframe ? `?timeframe=${timeframe}` : '';
-    return this.request<{ success: boolean; progress: any }>(`/api/progress${params}`);
+  async getMoodHistory(days = 30) {
+    return this.request<any>(`/mood?days=${days}`);
   }
 
-  async getProgressTrends(timeframe?: string) {
-    const params = timeframe ? `?timeframe=${timeframe}` : '';
-    return this.request<{ success: boolean; trends: any }>(`/api/progress/trends${params}`);
+  // Games endpoints
+  async getGames() {
+    return this.request<any>('/games');
   }
 
-  // Focus session methods
-  async createFocusSession(session: {
-    type: string;
-    durationMinutes: number;
-    background?: string;
+  async submitGameScore(gameId: string, scoreData: {
+    score: number;
+    completion_time?: number;
+    accuracy_percentage?: number;
+    level_reached?: number;
   }) {
-    return this.request<{ success: boolean; session: any }>('/api/focus-sessions', {
+    return this.request<any>(`/games/${gameId}/scores`, {
       method: 'POST',
-      body: JSON.stringify(session),
+      body: JSON.stringify(scoreData),
     });
   }
 
-  async completeFocusSession(sessionId: string, qualityRating: number) {
-    return this.request<{ success: boolean; session: any; pointsEarned: number }>(
-      `/api/focus-sessions/${sessionId}/complete`,
-      {
-        method: 'POST',
-        body: JSON.stringify({ qualityRating }),
-      }
-    );
+  async getGameScores() {
+    return this.request<any>('/games/scores');
   }
 
-  async getFocusSessions() {
-    return this.request<{ success: boolean; sessions: any[] }>('/api/focus-sessions');
+  // Focus sessions
+  async startFocusSession(sessionData: {
+    session_type: string;
+    duration_minutes: number;
+  }) {
+    return this.request<any>('/focus-sessions', {
+      method: 'POST',
+      body: JSON.stringify(sessionData),
+    });
   }
 
-  // Chat methods
-  async getChatMessages(roomId?: string) {
-    const params = roomId ? `?roomId=${roomId}` : '';
-    return this.request<{ success: boolean; messages: any[] }>(`/api/chat/messages${params}`);
+  async completeFocusSession(id: string, data: {
+    interruptions?: number;
+    notes?: string;
+  }) {
+    return this.request<any>(`/focus-sessions/${id}/complete`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   }
 
-  async sendChatMessage(message: {
+  // Documents endpoints
+  async getDocuments() {
+    return this.request<any>('/documents');
+  }
+
+  async getDocumentCategories() {
+    return this.request<any>('/documents/categories');
+  }
+
+  async createNote(noteData: {
+    title: string;
     content: string;
-    type?: string;
-    roomId?: string;
+    category_name?: string;
+    tags?: string[];
   }) {
-    return this.request<{ success: boolean; message: any }>('/api/chat/messages', {
+    return this.request<any>('/ai/create-note', {
       method: 'POST',
-      body: JSON.stringify(message),
+      body: JSON.stringify(noteData),
     });
-  }
-
-  // Document methods
-  async getDocuments(category?: string) {
-    const params = category ? `?category=${category}` : '';
-    return this.request<{ success: boolean; documents: any[] }>(`/api/documents${params}`);
   }
 
   async uploadDocument(formData: FormData) {
-    return this.request<{ success: boolean; document: any }>('/api/documents/upload', {
+    const url = `${API_BASE_URL}/api/documents`;
+    
+    const headers: HeadersInit = {};
+    if (this.token) {
+      headers.Authorization = `Bearer ${this.token}`;
+    }
+
+    const response = await fetch(url, {
       method: 'POST',
+      headers,
       body: formData,
-      headers: {}, // Don't set Content-Type for FormData
     });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Upload failed' }));
+      throw new APIError(response.status, errorData.error || 'Upload failed');
+    }
+
+    return response.json();
   }
 
-  async deleteDocument(documentId: string) {
-    return this.request<{ success: boolean }>(`/api/documents/${documentId}`, {
+  async deleteDocument(id: string) {
+    return this.request<any>(`/documents/${id}`, {
       method: 'DELETE',
     });
   }
 
-  // Specialist methods
-  async getSpecialists() {
-    return this.request<{ success: boolean; specialists: any[] }>('/api/specialists');
+  // Chat endpoints
+  async getChatRooms() {
+    return this.request<any>('/chat/rooms');
   }
 
-  async bookAppointment(appointment: {
-    specialistId: string;
-    scheduledAt: string;
-    type: string;
-    notes?: string;
-  }) {
-    return this.request<{ success: boolean; appointment: any }>('/api/appointments', {
+  async getChatMessages(roomId: string, limit = 50, offset = 0) {
+    return this.request<any>(`/chat/rooms/${roomId}/messages?limit=${limit}&offset=${offset}`);
+  }
+
+  async joinChatRoom(roomId: string) {
+    return this.request<any>(`/chat/rooms/${roomId}/join`, {
       method: 'POST',
-      body: JSON.stringify(appointment),
     });
   }
 
-  async getAppointments() {
-    return this.request<{ success: boolean; appointments: any[] }>('/api/appointments');
+  // Progress endpoints
+  async getProgress(days = 30) {
+    return this.request<any>(`/progress?days=${days}`);
   }
 
-  async cancelAppointment(appointmentId: string) {
-    return this.request<{ success: boolean }>(`/api/appointments/${appointmentId}/cancel`, {
+  // Extension endpoints
+  async updateExtensionPoints(points: number, activityType: string) {
+    return this.request<any>('/extension/points', {
       method: 'POST',
+      body: JSON.stringify({
+        points,
+        activity_type: activityType,
+        source: 'website'
+      }),
+    });
+  }
+
+  // AI endpoints
+  async chatWithAI(message: string) {
+    return this.request<any>('/ai/chat', {
+      method: 'POST',
+      body: JSON.stringify({ message }),
+    });
+  }
+
+  async processDocument(content: string, filename: string) {
+    return this.request<any>('/ai/process-document', {
+      method: 'POST',
+      body: JSON.stringify({ content, filename }),
+    });
+  }
+
+  async summarizeText(text: string, source = 'web') {
+    return this.request<any>('/ai/summarize', {
+      method: 'POST',
+      body: JSON.stringify({ text, source }),
     });
   }
 }
 
-// Create singleton instance
 export const apiClient = new APIClient();
-export { APIError };
-export default apiClient;

@@ -2,10 +2,48 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
-const { pool } = require('../config/database');
-const { authenticateToken, uploadRateLimit } = require('../middleware/auth');
+const { Pool } = require('pg');
+
+// Import AI processing function
+const { processContent } = require('./ai');
+const { processDocument } = require('../enhanced-document-processor');
+
+// Database connection
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:Pranavi%23250406@localhost:5432/mindspark_db',
+  ssl: false
+});
 const { validate, documentSchema, validateQuery, paginationSchema } = require('../middleware/validation');
-const config = require('../config');
+const config = require('../config/index');
+
+// Authentication middleware for demo
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'Access token required' });
+  }
+
+  if (token.startsWith('demo-token-')) {
+    req.user = {
+      id: '550e8400-e29b-41d4-a716-446655440000',
+      email: 'demo@mindspark.com',
+      username: 'Demo User'
+    };
+    return next();
+  }
+
+  req.user = {
+    id: '550e8400-e29b-41d4-a716-446655440000',
+    email: 'demo@mindspark.com',
+    username: 'Demo User'
+  };
+  next();
+};
+
+// Simple rate limiting for uploads
+const uploadRateLimit = (req, res, next) => next();
 
 const router = express.Router();
 
@@ -61,7 +99,9 @@ router.get('/categories', authenticateToken, async (req, res) => {
 // Upload document
 router.post('/', authenticateToken, uploadRateLimit, upload.single('file'), async (req, res) => {
   try {
-    const { title, category_id, content, tags } = req.body;
+    const { title, category_id, category_name, content, tags } = req.body;
+    
+    console.log('📄 Document upload request:', { title, category_id, category_name, content: content ? 'provided' : 'none', tags });
     
     if (!title) {
       return res.status(400).json({
@@ -83,11 +123,27 @@ router.post('/', authenticateToken, uploadRateLimit, upload.single('file'), asyn
     
     const tagsArray = tags ? tags.split(',').map(tag => tag.trim()) : null;
     
+    // Handle category mapping - if category_name is provided, find the matching category_id
+    let finalCategoryId = category_id;
+    if (category_name && !category_id) {
+      try {
+        const categoryResult = await pool.query(
+          'SELECT id FROM document_categories WHERE name = $1',
+          [category_name]
+        );
+        if (categoryResult.rows.length > 0) {
+          finalCategoryId = categoryResult.rows[0].id;
+        }
+      } catch (err) {
+        console.warn('Failed to find category by name:', category_name, err.message);
+      }
+    }
+    
     const document = await pool.query(`
       INSERT INTO documents (user_id, category_id, title, content, file_url, file_type, file_size, tags)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *
-    `, [req.user.id, category_id, title, content, file_url, file_type, file_size, tagsArray]);
+    `, [req.user.id, finalCategoryId, title, content, file_url, file_type, file_size, tagsArray]);
     
     // Award points for document upload
     const pointsEarned = 3;
@@ -101,17 +157,65 @@ router.post('/', authenticateToken, uploadRateLimit, upload.single('file'), asyn
       INSERT INTO progress_records (user_id, activity_type, activity_id, points_earned)
       VALUES ($1, 'document', $2, $3)
     `, [req.user.id, document.rows[0].id, pointsEarned]);
+
+    // Process document with AI if file or content is available
+    let aiProcessing = null;
+    let contentToProcess = content;
+    
+    // If no content but file exists, extract content from file
+    if (!contentToProcess && req.file) {
+      try {
+        console.log('📄 Extracting content from uploaded file...');
+        const fileProcessingResult = await processDocument(req.file.path);
+        if (fileProcessingResult && fileProcessingResult.content) {
+          contentToProcess = fileProcessingResult.content;
+          console.log(`✅ Extracted ${contentToProcess.length} characters from file`);
+        }
+      } catch (fileError) {
+        console.error('❌ File content extraction failed:', fileError.message);
+      }
+    }
+    
+    if (contentToProcess && contentToProcess.trim()) {
+      try {
+        console.log('🧠 Triggering AI processing for uploaded document...');
+        aiProcessing = await processContent(contentToProcess, 'document');
+        
+        // Update document with AI processing results
+        await pool.query(`
+          UPDATE documents 
+          SET ai_summary = $1, ai_processed_at = NOW()
+          WHERE id = $2
+        `, [JSON.stringify(aiProcessing), document.rows[0].id]);
+        
+        console.log('✅ AI processing completed for document');
+      } catch (aiError) {
+        console.error('❌ AI processing failed:', aiError.message);
+        // Don't fail the upload if AI processing fails
+      }
+    }
     
     res.status(201).json({
       success: true,
       message: 'Document uploaded successfully',
       data: {
-        document: document.rows[0],
+        document: {
+          ...document.rows[0],
+          ai_summary: aiProcessing
+        },
         points_earned: pointsEarned
       }
     });
   } catch (error) {
-    console.error('Document upload error:', error);
+    console.error('📄 Document upload error details:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code,
+      detail: error.detail,
+      constraint: error.constraint,
+      table: error.table,
+      column: error.column
+    });
     
     // Clean up uploaded file if database operation failed
     if (req.file) {
@@ -125,14 +229,15 @@ router.post('/', authenticateToken, uploadRateLimit, upload.single('file'), asyn
     res.status(500).json({ 
       success: false,
       error: 'Failed to upload document',
-      message: 'An error occurred while uploading your document'
+      message: `An error occurred while uploading your document: ${error.message}`
     });
   }
 });
 
 // Get user documents
-router.get('/', authenticateToken, validateQuery(paginationSchema), async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
   try {
+    console.log('📄 Documents GET request from user:', req.user.id);
     const { category_id, search, page = 1, limit = 20 } = req.query;
     const offset = (page - 1) * limit;
     
@@ -143,24 +248,27 @@ router.get('/', authenticateToken, validateQuery(paginationSchema), async (req, 
       WHERE d.user_id = $1
     `;
     let params = [req.user.id];
-    let paramCount = 1;
     
     // Add filters
     if (category_id) {
-      paramCount++;
-      query += ` AND d.category_id = ${paramCount}`;
+      query += ` AND d.category_id = $2`;
       params.push(category_id);
     }
     
     if (search) {
-      paramCount++;
-      query += ` AND (d.title ILIKE ${paramCount} OR d.content ILIKE ${paramCount} OR ${paramCount} = ANY(d.tags))`;
+      const searchParam = category_id ? '$3' : '$2';
+      query += ` AND (d.title ILIKE ${searchParam} OR d.content ILIKE ${searchParam} OR ${searchParam} = ANY(d.tags))`;
       params.push(`%${search}%`);
     }
     
-    // Add ordering and pagination  
-    query += ` ORDER BY d.created_at DESC LIMIT ${paramCount + 1} OFFSET ${paramCount + 2}`;
+    // Add ordering and pagination
+    const limitParam = `$${params.length + 1}`;
+    const offsetParam = `$${params.length + 2}`;
+    query += ` ORDER BY d.created_at DESC LIMIT ${limitParam} OFFSET ${offsetParam}`;
     params.push(limit, offset);
+    
+    console.log('📄 Executing query:', query);
+    console.log('📄 With params:', params);
     
     const documents = await pool.query(query, params);
     

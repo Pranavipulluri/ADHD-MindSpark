@@ -1,0 +1,71 @@
+{
+  "manifest_version": 2,
+  "name": "MindSpark - Adaptive Learning Assistant",
+  "version": "1.0.0",
+  "description": "Adaptive, supportive browser extension for neurodivergent learners with dyslexia-friendly features, AI summaries, and accessibility tools.",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "tts",
+    "identity",
+    "scripting",
+    "tabs",
+    "contextMenus",
+    "<all_urls>"
+  ],
+  "background": {
+    "scripts": [
+      "background.js"
+    ],
+    "persistent": false
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "content.css"
+      ],
+      "run_at": "document_end"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "fonts/*",
+        "icons/*",
+        "accessibility-panel.html",
+        "games/*"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "mindspark@extension.com",
+      "strict_min_version": "90.0"
+    }
+  },
+  "browser_action": {
+    "default_popup": "popup.html",
+    "default_title": "MindSpark Assistant",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  }
+}

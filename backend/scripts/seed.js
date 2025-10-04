@@ -164,33 +164,23 @@ const sampleTasks = [
 const specialists = [
   {
     id: uuidv4(),
-    name: 'Dr. Sarah Johnson',
+    user_id: sampleUsers[0].id, // Link to first user as specialist
+    first_name: 'Sarah',
+    last_name: 'Johnson',
+    title: 'Dr.',
     specialization: 'Child Psychologist',
-    email: 'sarah.johnson@clinic.com',
-    phone: '+1-555-0101',
     bio: 'Specialized in ADHD diagnosis and treatment for children and adolescents with over 10 years of experience.',
-    availability: JSON.stringify({
-      monday: ['09:00', '10:00', '11:00', '14:00', '15:00'],
-      tuesday: ['09:00', '10:00', '11:00', '14:00', '15:00'],
-      wednesday: ['09:00', '10:00', '11:00'],
-      thursday: ['09:00', '10:00', '11:00', '14:00', '15:00'],
-      friday: ['09:00', '10:00', '11:00', '14:00']
-    })
+    hourly_rate: 120.00
   },
   {
     id: uuidv4(),
-    name: 'Dr. Michael Chen',
+    user_id: sampleUsers[1].id, // Link to second user as specialist
+    first_name: 'Michael',
+    last_name: 'Chen',
+    title: 'Dr.',
     specialization: 'Educational Therapist',
-    email: 'michael.chen@therapy.com',
-    phone: '+1-555-0102',
     bio: 'Expert in learning disabilities and educational interventions for ADHD students.',
-    availability: JSON.stringify({
-      monday: ['10:00', '11:00', '14:00', '15:00', '16:00'],
-      tuesday: ['10:00', '11:00', '14:00', '15:00', '16:00'],
-      wednesday: ['10:00', '11:00', '14:00', '15:00'],
-      thursday: ['10:00', '11:00', '14:00', '15:00', '16:00'],
-      friday: ['10:00', '11:00', '14:00', '15:00']
-    })
+    hourly_rate: 100.00
   }
 ];
 
@@ -201,11 +191,14 @@ async function clearData() {
   const tables = [
     'appointments',
     'chat_messages',
+    'chat_participants',
+    'chat_rooms',
     'documents',
+    'document_categories',
     'focus_sessions',
-    'achievements',
+    'user_achievements',
+    'progress_records',
     'game_scores',
-    'user_tasks',
     'mood_entries',
     'specialists',
     'tasks',
@@ -286,27 +279,42 @@ async function seedGames() {
   }
 }
 
-// Seed tasks
+// Seed tasks (assign to users directly)
 async function seedTasks() {
   log.info('Seeding tasks...');
   
   try {
-    for (const task of sampleTasks) {
-      await pool.query(`
-        INSERT INTO tasks (id, title, description, category, priority, points_reward, estimated_duration)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
-      `, [
-        task.id,
-        task.title,
-        task.description,
-        task.category,
-        task.priority,
-        task.points_reward,
-        task.estimated_duration
-      ]);
+    let count = 0;
+    
+    for (const user of sampleUsers) {
+      // Create 2-3 tasks for each user
+      const numTasks = Math.floor(Math.random() * 2) + 2;
+      
+      for (let i = 0; i < numTasks; i++) {
+        const task = sampleTasks[i % sampleTasks.length];
+        const status = Math.random() > 0.5 ? 'must-do' : 'done';
+        const dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + Math.floor(Math.random() * 7));
+        
+        await pool.query(`
+          INSERT INTO tasks (id, user_id, title, description, priority, status, due_date, estimated_duration)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        `, [
+          uuidv4(),
+          user.id,
+          task.title,
+          task.description,
+          task.priority,
+          status,
+          dueDate,
+          task.estimated_duration
+        ]);
+        
+        count++;
+      }
     }
     
-    log.success(`Seeded ${sampleTasks.length} tasks`);
+    log.success(`Seeded ${count} tasks`);
   } catch (error) {
     log.error('Failed to seed tasks:', error.message);
     throw error;
@@ -320,16 +328,17 @@ async function seedSpecialists() {
   try {
     for (const specialist of specialists) {
       await pool.query(`
-        INSERT INTO specialists (id, name, specialization, email, phone, bio, availability)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        INSERT INTO specialists (id, user_id, first_name, last_name, title, specialization, bio, hourly_rate)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       `, [
         specialist.id,
-        specialist.name,
+        specialist.user_id,
+        specialist.first_name,
+        specialist.last_name,
+        specialist.title,
         specialist.specialization,
-        specialist.email,
-        specialist.phone,
         specialist.bio,
-        specialist.availability
+        specialist.hourly_rate
       ]);
     }
     
@@ -340,42 +349,28 @@ async function seedSpecialists() {
   }
 }
 
-// Seed user tasks (assign tasks to users)
-async function seedUserTasks() {
-  log.info('Seeding user tasks...');
+// Seed document categories
+async function seedDocumentCategories() {
+  log.info('Seeding document categories...');
+  
+  const categories = [
+    { id: uuidv4(), name: 'Reports', color: '#3b82f6' },
+    { id: uuidv4(), name: 'Assignments', color: '#10b981' },
+    { id: uuidv4(), name: 'Medical', color: '#f59e0b' },
+    { id: uuidv4(), name: 'Other', color: '#6b7280' }
+  ];
   
   try {
-    let count = 0;
-    
-    for (const user of sampleUsers) {
-      // Assign 2-3 random tasks to each user
-      const numTasks = Math.floor(Math.random() * 2) + 2;
-      const shuffledTasks = [...sampleTasks].sort(() => Math.random() - 0.5);
-      
-      for (let i = 0; i < numTasks; i++) {
-        const task = shuffledTasks[i];
-        const status = Math.random() > 0.5 ? 'pending' : 'completed';
-        const dueDate = new Date();
-        dueDate.setDate(dueDate.getDate() + Math.floor(Math.random() * 7));
-        
-        await pool.query(`
-          INSERT INTO user_tasks (id, user_id, task_id, status, due_date, assigned_at)
-          VALUES ($1, $2, $3, $4, $5, NOW())
-        `, [
-          uuidv4(),
-          user.id,
-          task.id,
-          status,
-          dueDate
-        ]);
-        
-        count++;
-      }
+    for (const category of categories) {
+      await pool.query(`
+        INSERT INTO document_categories (id, name, color)
+        VALUES ($1, $2, $3)
+      `, [category.id, category.name, category.color]);
     }
     
-    log.success(`Seeded ${count} user tasks`);
+    log.success(`Seeded ${categories.length} document categories`);
   } catch (error) {
-    log.error('Failed to seed user tasks:', error.message);
+    log.error('Failed to seed document categories:', error.message);
     throw error;
   }
 }
@@ -440,7 +435,7 @@ async function seedGameScores() {
         const level = Math.floor(Math.random() * 5) + 1;
         
         await pool.query(`
-          INSERT INTO game_scores (id, user_id, game_id, score, accuracy_percentage, level_reached, points_earned, played_at)
+          INSERT INTO game_scores (id, user_id, game_id, score, accuracy_percentage, level_reached, points_earned, created_at)
           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW() - INTERVAL '${Math.floor(Math.random() * 168)} hours')
         `, [
           uuidv4(),
@@ -473,14 +468,15 @@ async function seedDatabase() {
     await seedGames();
     await seedTasks();
     await seedSpecialists();
-    await seedUserTasks();
+    await seedDocumentCategories();
     await seedMoodEntries();
     await seedGameScores();
     
     log.success('Database seeding completed successfully!');
     
   } catch (error) {
-    log.error('Seeding failed:', error.message);
+    log.error('Seeding failed:');
+    console.error('Error details:', error);
     throw error;
   } finally {
     await pool.end();

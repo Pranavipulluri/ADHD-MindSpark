@@ -7,16 +7,20 @@
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",
-    "build": "npm run build:frontend && npm run build:backend",
+    "dev:extension": "cd extension && npm run dev",
+    "build": "npm run build:frontend && npm run build:backend && npm run build:extension",
     "build:frontend": "cd frontend && npm run build",
     "build:backend": "cd backend && npm run build",
+    "build:extension": "cd extension && npm run build",
     "test": "npm run test:backend && npm run test:frontend",
     "test:backend": "cd backend && npm test",
     "test:frontend": "cd frontend && npm run test",
     "docker:up": "cd backend && docker-compose up -d",
     "docker:down": "cd backend && docker-compose down",
-    "clean": "rm -rf node_modules backend/node_modules frontend/node_modules",
-    "reset": "npm run clean && npm install"
+    "clean": "rm -rf node_modules backend/node_modules frontend/node_modules extension/node_modules",
+    "reset": "npm run clean && npm install",
+    "extension:install": "cd extension && npm install",
+    "extension:package": "cd extension && npm run package"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

@@ -10,7 +10,7 @@ export interface User {
   username: string;
   email: string;
   avatar_url?: string;
-  date_of_birth: string;
+  date_of_birth?: string;
   parent_email: string;
   points: number;
   level: number;
@@ -19,6 +19,15 @@ export interface User {
   preferences: Record<string, any>;
   created_at: string;
   updated_at: string;
+}
+
+// API response types
+export interface APIResponse<T = any> {
+  success: boolean;
+  data?: T;
+  message?: string;
+  error?: string;
+  details?: any;
 }
 
 export interface AuthResponse {
@@ -95,7 +104,6 @@ export interface MoodOption {
   label: string;
   color: string;
   selected?: boolean;
-  value: string;
 }
 
 // Focus Session types
@@ -126,16 +134,25 @@ export interface ChatMessage {
 // Document types
 export interface Document {
   id: string;
-  user_id: string;
-  title: string;
+  user_id?: string;
+  name: string;
+  title?: string;
   description?: string;
-  filename: string;
-  file_url: string;
-  file_size: number;
-  mime_type: string;
-  category: 'report' | 'assignment' | 'medical' | 'other';
+  content?: string;
+  filename?: string;
+  file_url?: string;
+  url?: string;
+  file_size?: number;
+  mime_type?: string;
+  type?: 'file' | 'note';
+  category?: string;
+  categoryId?: string;
   tags?: string[];
-  uploaded_at: string;
+  uploaded_at?: string;
+  createdAt?: Date;
+  created_at?: string;
+  aiSummary?: any;
+  aiProcessedAt?: string;
 }
 
 // Specialist types
@@ -194,15 +211,6 @@ export interface Progress {
     avgDuration: number;
     avgQuality: number;
   };
-}
-
-// API Response types
-export interface APIResponse<T = any> {
-  success: boolean;
-  data?: T;
-  message?: string;
-  error?: string;
-  details?: any;
 }
 
 export interface PaginationInfo {
