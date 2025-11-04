@@ -126,6 +126,16 @@ Dockerfile
 docker-compose.yml
 
 # Test files
+test-*.js
+test-*.html
+check-*.js
+*-test.js
+create-demo-user.js
+process-real-content.js
+reprocess-documents.js
+update-document-content.js
+enhanced-document-processor.js
+ai-helpers.js
 test-results/
 playwright-report/
 test-report/
