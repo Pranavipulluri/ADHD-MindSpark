@@ -1,34 +1,139 @@
-/**const fs = require('fs').promises;
+/**/**
 
- * Enhanced Document Processor - Fallback Versionconst path = require('path');
+ * Enhanced Document Processor - Fallback Version * Enhanced Document Processor - Fallback Version
 
- * This is a simplified fallback version for production deploymentconst pdfParse = require('pdf-parse');
+ * This is a simplified fallback version for production deployment * This is a simplified fallback version for production deployment
 
- */const { Pool } = require('pg');
+ */ */
 
-const { spawn } = require('child_process');
 
-const fs = require('fs').promises;
 
-const path = require('path');// Database connection
+const fs = require('fs').promises;const fs = require('fs').promises;
 
-const pool = new Pool({
+const path = require('path');const path = require('path');
 
-/**  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:Pranavi%23250406@localhost:5432/mindspark_db',
 
- * Process document with BART AI (fallback version)  ssl: false
 
- * @param {string} content - The content to process});
+/**/**
 
- * @returns {Promise<Object>} Processing result
+ * Process document with BART AI (fallback version) * Process document with BART AI (fallback version)
 
- */async function extractPDFContent(filePath) {
+ * @param {string} content - The content to process * @param {string} content - The content to process
 
-async function processWithBART(content) {  try {
+ * @returns {Promise<Object>} Processing result * @returns {Promise<Object>} Processing result
 
-  console.log('⚠️ Using fallback document processor (BART not available)');    console.log('📑 Extracting content from PDF:', path.basename(filePath));
+ */ */
 
-      const dataBuffer = await fs.readFile(filePath);
+async function processWithBART(content) {async function processWithBART(content) {
+
+  console.log('⚠️ Using fallback document processor (BART not available)');  console.log('⚠️ Using fallback document processor (BART not available)');
+
+    
+
+  // Return a simple structured response  // Return a simple structured response
+
+  return {  return {
+
+    summary: content.slice(0, 500) + (content.length > 500 ? '...' : ''),    summary: content.slice(0, 500) + (content.length > 500 ? '...' : ''),
+
+    key_points: [],    key_points: [],
+
+    success: true,    success: true,
+
+    method: 'fallback'    method: 'fallback'
+
+  };  };
+
+}}
+
+
+
+/**/**
+
+ * Process a document file (fallback version) * Process a document file (fallback version)
+
+ * @param {string} filePath - Path to the document file * @param {string} filePath - Path to the document file
+
+ * @returns {Promise<Object>} Processing result * @returns {Promise<Object>} Processing result
+
+ */ */
+
+async function processDocument(filePath) {async function processDocument(filePath) {
+
+  console.log('⚠️ Using fallback document processor');  console.log('⚠️ Using fallback document processor');
+
+    
+
+  try {  try {
+
+    // Read file content    // Read file content
+
+    const content = await fs.readFile(filePath, 'utf-8');    const content = await fs.readFile(filePath, 'utf-8');
+
+        
+
+    return {    return {
+
+      content: content,      content: content,
+
+      success: true,      success: true,
+
+      method: 'fallback'      method: 'fallback'
+
+    };    };
+
+  } catch (error) {  } catch (error) {
+
+    console.error('Error reading document:', error);    console.error('Error reading document:', error);
+
+    return {    return {
+
+      content: '',      content: '',
+
+      success: false,      success: false,
+
+      error: error.message      error: error.message
+
+    };    };
+
+  }  }
+
+}}
+
+
+
+/**/**
+
+ * Process library documents (fallback version) * Process library documents (fallback version)
+
+ */ */
+
+async function processLibraryDocuments() {async function processLibraryDocuments() {
+
+  console.log('⚠️ Library document processing not available in fallback mode');  console.log('⚠️ Library document processing not available in fallback mode');
+
+  return {  return {
+
+    success: false,    success: false,
+
+    message: 'Library processing requires full document processor'    message: 'Library processing requires full document processor'
+
+  };  };
+
+}}
+
+
+
+module.exports = {module.exports = {
+
+  processWithBART,  processWithBART,
+
+  processDocument,  processDocument,
+
+  processLibraryDocuments  processLibraryDocuments
+
+};};
+
 
   // Return a simple structured response    const data = await pdfParse(dataBuffer);
 
