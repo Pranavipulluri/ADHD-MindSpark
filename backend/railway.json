@@ -1,0 +1,13 @@
+# Railway Backend Configuration
+
+This configuration tells Railway to:
+- Use the `backend` folder as root directory
+- Install dependencies with npm
+- Start the server with `node server.js`
+- Use `/health` endpoint for health checks
+
+## Setup in Railway:
+
+1. Go to your service → Settings → Source
+2. Set **Root Directory**: `backend`
+3. Railway will use this configuration automatically
