@@ -1,5 +1,8 @@
 // API client for MindSpark backend
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const isDevelopment = import.meta.env.DEV;
+const API_BASE_URL = isDevelopment 
+  ? 'http://localhost:3001'
+  : (import.meta.env.VITE_API_URL || 'https://your-backend-url.railway.app');
 
 export class APIError extends Error {
   constructor(public status: number, message: string) {

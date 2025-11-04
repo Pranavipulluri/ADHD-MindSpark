@@ -20,7 +20,10 @@ interface WebSocketActions {
 
 type WebSocketStore = WebSocketState & WebSocketActions;
 
-const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:3001';
+const isDevelopment = import.meta.env.DEV;
+const WS_URL = isDevelopment
+  ? 'ws://localhost:3001'
+  : (import.meta.env.VITE_WS_URL || 'wss://your-backend-url.railway.app');
 
 export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
   // State
