@@ -92,7 +92,7 @@ const readinessCheck = async (req, res) => {
   }
 };
 
-// Liveness probe (for Kubernetes)
+// Liveness probe (for Kubernetes) - Simple check without DB dependency
 const livenessCheck = (req, res) => {
   // Simple check to verify the application is running
   res.status(200).json({
@@ -102,8 +102,19 @@ const livenessCheck = (req, res) => {
   });
 };
 
+// Simple health check without database dependency (for Railway initial deployment)
+const simpleHealthCheck = (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+};
+
 module.exports = {
   healthCheck,
   readinessCheck,
-  livenessCheck
+  livenessCheck,
+  simpleHealthCheck
 };
