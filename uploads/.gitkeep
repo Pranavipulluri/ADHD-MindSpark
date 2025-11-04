@@ -1,0 +1,4 @@
+# Uploads Directory
+
+This directory is used to store uploaded documents and files.
+It's excluded from git tracking for security and size reasons.
