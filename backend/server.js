@@ -309,8 +309,8 @@ const mentorsRoutes = require('./routes/mentors');
 app.use('/api/mentors', mentorsRoutes);
 
 // NGO ROUTES
-const ngosRoutes = require('./routes/ngos');
-app.use('/api/ngos', ngosRoutes);
+const ngoRoutes = require('./routes/ngo');
+app.use('/api/ngo', ngoRoutes);
 
 // Local helper functions for document processing (keeping only what's needed)
 function generateSimpleSummary(text) {
