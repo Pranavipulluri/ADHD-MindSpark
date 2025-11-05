@@ -218,26 +218,99 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 // AI Chat endpoint
 router.post('/chat', authenticateToken, async (req, res) => {
   try {
-    const { message } = req.body;
+    const { message, conversation_history = [] } = req.body;
 
     if (!message) {
       return res.status(400).json({ error: 'Message is required' });
     }
 
+    console.log(`💬 Chat request from user ${req.user.username}: ${message}`);
+
     let response;
 
+    // Get user context for personalization
+    let userContext = '';
     try {
-      // Try Gemini API first
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-      const prompt = `You are a friendly, encouraging AI tutor for neurodivergent children and teens. 
-      Respond in a warm, supportive way that builds confidence. Use simple language, emojis, and positive reinforcement.
-      Keep responses concise but engaging. User message: "${message}"`;
+      const userProfile = await pool.query(
+        'SELECT username, points, current_streak FROM profiles WHERE id = $1',
+        [req.user.id]
+      );
+      
+      if (userProfile.rows.length > 0) {
+        const profile = userProfile.rows[0];
+        userContext = `Student Name: ${profile.username}, Points: ${profile.points}, Streak: ${profile.current_streak} days`;
+      }
+    } catch (contextError) {
+      console.log('Could not fetch user context:', contextError.message);
+    }
+
+    try {
+      // Try multiple Gemini models in order
+      const modelNames = ["gemini-pro", "gemini-1.5-pro-latest", "gemini-1.5-flash", "gemini-1.0-pro"];
+      let model = null;
+      let modelUsed = null;
+      
+      for (const modelName of modelNames) {
+        try {
+          model = genAI.getGenerativeModel({ model: modelName });
+          // Test the model
+          await model.generateContent("test");
+          modelUsed = modelName;
+          console.log(`✅ Using Gemini model: ${modelName}`);
+          break;
+        } catch (modelError) {
+          console.log(`❌ Model ${modelName} failed: ${modelError.message}`);
+          continue;
+        }
+      }
+
+      if (!model) {
+        throw new Error('No valid Gemini model available');
+      }
+
+      // Build conversation context
+      let conversationContext = '';
+      if (conversation_history && conversation_history.length > 0) {
+        conversationContext = '\n\nPrevious conversation:\n' + conversation_history
+          .slice(-6) // Last 3 exchanges
+          .map(msg => `${msg.isBot ? 'Assistant' : 'Student'}: ${msg.text}`)
+          .join('\n');
+      }
+
+      const prompt = `You are "MindSpark Buddy", a friendly, patient, and encouraging AI tutor specifically designed for students with ADHD. 
+
+Your personality:
+- Warm, supportive, and enthusiastic
+- Patient and never judgmental
+- Use age-appropriate language with emojis 🌟
+- Break complex topics into simple, bite-sized explanations
+- Celebrate small wins and progress
+- Give specific, actionable advice
+- Relate concepts to real-life examples students can understand
+
+${userContext ? `Student Context: ${userContext}` : ''}
+${conversationContext}
+
+Student's current message: "${message}"
+
+Guidelines:
+1. Keep responses concise (2-4 sentences max unless explaining a complex topic)
+2. Use emojis naturally but don't overdo it
+3. If the student seems stuck or frustrated, offer encouragement first
+4. For homework help: guide them to the answer, don't just give it
+5. For emotions/struggles: validate feelings, offer coping strategies
+6. Make learning fun with analogies, examples, and relatable scenarios
+7. If appropriate, suggest breaking tasks into smaller steps
+8. Always end on a positive, encouraging note
+
+Respond naturally as MindSpark Buddy:`;
       
       const result = await model.generateContent(prompt);
       response = result.response.text();
+      console.log(`✅ Gemini response generated (${modelUsed})`);
     } catch (geminiError) {
-      console.log('Gemini API failed, using fallback:', geminiError.message);
-      response = getFallbackResponse(message);
+      console.log('❌ Gemini API failed, using enhanced fallback:', geminiError.message);
+      response = getEnhancedFallbackResponse(message, userContext);
     }
 
     res.json({
@@ -717,38 +790,85 @@ async function runLocalAI(content) {
   });
 }
 
-// Fallback response function
-function getFallbackResponse(input) {
+// Enhanced fallback response function with personalization
+function getEnhancedFallbackResponse(input, userContext = '') {
   const lowerInput = input.toLowerCase();
 
-  if (lowerInput.includes('math') || lowerInput.includes('add') || lowerInput.includes('subtract')) {
-    return "Math is so cool! Want to try a fun math game? I can help you practice addition, subtraction, multiplication, or division! 🔢";
+  // Extract user name if available
+  let userName = '';
+  if (userContext) {
+    const nameMatch = userContext.match(/Student Name: ([^,]+)/);
+    if (nameMatch) {
+      userName = nameMatch[1].trim();
+    }
   }
 
-  if (lowerInput.includes('science') || lowerInput.includes('why') || lowerInput.includes('how')) {
-    return "Science is amazing! Everything around us follows scientific rules. What are you curious about? Animals, space, weather, or something else? 🔬";
+  const greeting = userName ? `Hey ${userName}! ` : 'Hey there! ';
+
+  // Math-related
+  if (lowerInput.includes('math') || lowerInput.includes('add') || lowerInput.includes('subtract') || lowerInput.includes('multiply') || lowerInput.includes('divide')) {
+    return `${greeting}Math can be tricky but you've got this! 🔢 Let's break it down step by step. What specific problem are you working on? I'll help you understand it better!`;
   }
 
-  if (lowerInput.includes('read') || lowerInput.includes('write') || lowerInput.includes('story')) {
-    return "Reading opens up whole new worlds! What kind of stories do you like? Adventure, mystery, fantasy, or something else? 📚";
+  // Science-related
+  if (lowerInput.includes('science') || lowerInput.includes('experiment') || lowerInput.includes('hypothesis')) {
+    return `${greeting}Science is all about asking questions! 🔬 What are you curious about? Whether it's animals, space, chemistry, or physics - let's explore it together!`;
   }
 
-  if (lowerInput.includes('hard') || lowerInput.includes('difficult') || lowerInput.includes('can\'t')) {
-    return "I believe in you! Every expert was once a beginner. Take it one step at a time, and you'll get there! 💪";
+  // Reading/Writing
+  if (lowerInput.includes('read') || lowerInput.includes('write') || lowerInput.includes('story') || lowerInput.includes('essay')) {
+    return `${greeting}Reading and writing are like superpowers! 📚 What are you working on? I can help you organize your thoughts or break down what you're reading into smaller, easier parts!`;
   }
 
+  // Homework help
+  if (lowerInput.includes('homework') || lowerInput.includes('assignment') || lowerInput.includes('project')) {
+    return `${greeting}Homework time! 📝 Let's make this easier. Tell me what subject it's for, and we can break it into small, manageable chunks. You'll finish before you know it!`;
+  }
+
+  // Frustration/struggle
+  if (lowerInput.includes('hard') || lowerInput.includes('difficult') || lowerInput.includes('can\'t') || lowerInput.includes('don\'t understand') || lowerInput.includes('confused')) {
+    return `${greeting}I totally get it - this stuff can feel overwhelming! 💪 But here's the thing: you're already doing great by asking for help. Let's slow down and take it one tiny step at a time. What's the first thing that's confusing you?`;
+  }
+
+  // Focus/concentration
+  if (lowerInput.includes('focus') || lowerInput.includes('concentrate') || lowerInput.includes('distract')) {
+    return `${greeting}Staying focused can be super hard! 🎯 Try the Pomodoro technique: work for 15 minutes, then take a 5-minute break. Our Focus Timer can help! Want me to explain how to use it?`;
+  }
+
+  // Encouragement needed
+  if (lowerInput.includes('give up') || lowerInput.includes('quit') || lowerInput.includes('too hard')) {
+    return `${greeting}Whoa, hold on! 🌟 You're stronger than you think! Every expert started exactly where you are now. Let's try a different approach together. What part feels too hard? I bet we can find a way to make it click!`;
+  }
+
+  // Greetings
   if (lowerInput.includes('hello') || lowerInput.includes('hi') || lowerInput.includes('hey')) {
-    return "Hello there! I'm so happy to chat with you today! What would you like to learn about? 😊";
+    return `${greeting}I'm so happy to chat with you! 😊 I'm here to help with homework, answer questions, or just talk about what you're learning. What's on your mind today?`;
   }
 
+  // Gratitude
+  if (lowerInput.includes('thank') || lowerInput.includes('thanks')) {
+    return `${greeting}You're so welcome! 💜 That's what I'm here for! Need help with anything else? I'm always here to support you!`;
+  }
+
+  // Goodbye
+  if (lowerInput.includes('bye') || lowerInput.includes('goodbye') || lowerInput.includes('see you')) {
+    return `${greeting}See you later! Keep being awesome! 🌟 Remember, I'm here whenever you need me. You're doing great!`;
+  }
+
+  // Default personalized responses
   const defaults = [
-    "That's interesting! Tell me more about what you're thinking. I'm here to help you learn and explore! 🤔",
-    "I love your curiosity! Can you give me a bit more detail so I can help you better?",
-    "Great question! Learning is all about asking questions. What specifically would you like to know more about?",
-    "You're such a thoughtful learner! Let's explore this together. What part interests you most?"
+    `${greeting}That's a great question! 🤔 Can you tell me a bit more about what you're trying to learn or understand? I want to make sure I give you the best help possible!`,
+    `${greeting}I love your curiosity! 🌟 Learning happens when we ask questions. Can you give me more details so I can help you better?`,
+    `${greeting}You're thinking deeply about this! 💭 Let's explore it together. What specific part are you most interested in?`,
+    `${greeting}That's interesting! Tell me more about what you're working on, and I'll do my best to make it clear and fun to learn! 🎯`
   ];
 
   return defaults[Math.floor(Math.random() * defaults.length)];
+}
+
+// Fallback response function (keeping for backward compatibility)
+function getFallbackResponse(input) {
+  return getEnhancedFallbackResponse(input, '');
 }
 
 // Simple processing functions

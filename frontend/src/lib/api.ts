@@ -274,10 +274,10 @@ class APIClient {
   }
 
   // AI endpoints
-  async chatWithAI(message: string) {
+  async chatWithAI(message: string, conversation_history: any[] = []) {
     return this.request<any>('/ai/chat', {
       method: 'POST',
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({ message, conversation_history }),
     });
   }
 
