@@ -41,13 +41,32 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true });
         try {
           const response = await apiClient.login(email, password);
-          // Store user data including role
-          localStorage.setItem('user', JSON.stringify(response.user));
+          console.log('🔐 Login response:', response);
+          console.log('🔐 User role:', response.user.role);
+          
+          // IMPORTANT: Store user data FIRST before anything else
+          const userWithRole = {
+            ...response.user,
+            role: response.user.role || 'student' // Default to student if no role
+          };
+          
+          localStorage.setItem('user', JSON.stringify(userWithRole));
+          console.log('✅ User stored in localStorage:', userWithRole);
+          
           set({
-            user: response.user,
+            user: userWithRole,
             isAuthenticated: true,
             isLoading: false,
           });
+          
+          // Trigger custom event to update App.tsx
+          window.dispatchEvent(new Event('user-login'));
+          
+          // Force page reload to update role-based routing (with delay to ensure storage is written)
+          setTimeout(() => {
+            console.log('🔄 Reloading page for role-based redirect...');
+            window.location.href = '/'; // Full reload to home, routing will handle redirect
+          }, 200);
         } catch (error) {
           set({ isLoading: false });
           throw error;
@@ -58,13 +77,32 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true });
         try {
           const response = await apiClient.register(userData);
-          // Store user data including role
-          localStorage.setItem('user', JSON.stringify(response.user));
+          console.log('📝 Registration response:', response);
+          console.log('📝 User role:', response.user.role);
+          
+          // IMPORTANT: Store user data FIRST before anything else
+          const userWithRole = {
+            ...response.user,
+            role: response.user.role || userData.role || 'student' // Fallback to requested role
+          };
+          
+          localStorage.setItem('user', JSON.stringify(userWithRole));
+          console.log('✅ User stored in localStorage:', userWithRole);
+          
           set({
-            user: response.user,
+            user: userWithRole,
             isAuthenticated: true,
             isLoading: false,
           });
+          
+          // Trigger custom event to update App.tsx
+          window.dispatchEvent(new Event('user-login'));
+          
+          // Force page reload to update role-based routing (with delay to ensure storage is written)
+          setTimeout(() => {
+            console.log('🔄 Reloading page for role-based redirect...');
+            window.location.href = '/'; // Full reload to home, routing will handle redirect
+          }, 200);
         } catch (error) {
           set({ isLoading: false });
           throw error;

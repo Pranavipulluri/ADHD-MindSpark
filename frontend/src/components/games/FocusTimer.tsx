@@ -1,4 +1,4 @@
-import { Pause, Play, RotateCcw, Volume2, VolumeX, X, Camera } from 'lucide-react';
+import { Camera, Pause, Play, RotateCcw, Volume2, VolumeX, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { usePointsStore } from '../../stores/usePointsStore';
 import FocusMonitor from '../focus/FocusMonitor';
@@ -11,6 +11,7 @@ interface FocusTimerProps {
 const FocusTimer: React.FC<FocusTimerProps> = ({ isOpen, onClose }) => {
   const [timeLeft, setTimeLeft] = useState(15 * 60); // 15 minutes in seconds
   const [isRunning, setIsRunning] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false); // Track if timer has ever been started
   const [selectedTime, setSelectedTime] = useState(15);
   const [isMuted, setIsMuted] = useState(false);
   const [completedSessions, setCompletedSessions] = useState(0);
@@ -19,6 +20,16 @@ const FocusTimer: React.FC<FocusTimerProps> = ({ isOpen, onClose }) => {
   const { addPoints } = usePointsStore();
 
   const timeOptions = [5, 10, 15, 25, 30, 45, 60];
+
+  // Reset everything when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setIsRunning(false);
+      setHasStarted(false);
+      setTimeLeft(selectedTime * 60);
+      setDistractionCount(0);
+    }
+  }, [isOpen, selectedTime]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -60,6 +71,7 @@ const FocusTimer: React.FC<FocusTimerProps> = ({ isOpen, onClose }) => {
 
   const handleStart = () => {
     setIsRunning(true);
+    setHasStarted(true); // Mark that timer has been started
   };
 
   const handlePause = () => {
@@ -68,6 +80,7 @@ const FocusTimer: React.FC<FocusTimerProps> = ({ isOpen, onClose }) => {
 
   const handleReset = () => {
     setIsRunning(false);
+    setHasStarted(false); // Reset the started state
     setTimeLeft(selectedTime * 60);
     setDistractionCount(0);
   };
@@ -255,7 +268,7 @@ const FocusTimer: React.FC<FocusTimerProps> = ({ isOpen, onClose }) => {
             </h3>
             {cameraEnabled && (
               <FocusMonitor 
-                isActive={isRunning} 
+                isActive={hasStarted} 
                 onDistraction={handleDistraction}
               />
             )}

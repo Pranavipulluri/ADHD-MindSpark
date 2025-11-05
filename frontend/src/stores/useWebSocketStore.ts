@@ -1,6 +1,6 @@
 // src/stores/useWebSocketStore.ts
 import { create } from 'zustand';
-import { WSMessage, Notification } from '../types/api';
+import { Notification, WSMessage } from '../types/api';
 
 interface WebSocketState {
   socket: WebSocket | null;
