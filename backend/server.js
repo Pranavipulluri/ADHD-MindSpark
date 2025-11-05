@@ -486,28 +486,6 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// One-time database initialization endpoint (REMOVE AFTER USE!)
-app.get('/init-database-one-time-only', async (req, res) => {
-  try {
-    const fs = require('fs');
-    const path = require('path');
-    const schemaPath = path.join(__dirname, 'database', 'migrations', '001_initial_schema.sql');
-    const schema = fs.readFileSync(schemaPath, 'utf8');
-    
-    await db.query(schema);
-    
-    res.json({ 
-      success: true, 
-      message: 'Database initialized successfully! DELETE THIS ENDPOINT NOW!' 
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      error: error.message 
-    });
-  }
-});
-
 // Test Hugging Face API endpoint
 app.get('/api/test-hf', async (req, res) => {
   try {
