@@ -2,15 +2,15 @@ import { Calendar, Edit, MapPin, Plus, Trash2, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface Workshop {
-  id: number;
+  id: string;
   title: string;
   description: string;
-  workshop_date: string;
-  workshop_time: string;
+  scheduled_date: string;
   location: string;
   max_participants: number;
   current_participants: number;
   status: string;
+  organizer_name?: string;
 }
 
 const NGODashboard = () => {
@@ -75,7 +75,7 @@ const NGODashboard = () => {
     }
   };
 
-  const handleDeleteWorkshop = async (workshopId: number) => {
+  const handleDeleteWorkshop = async (workshopId: string) => {
     if (!confirm('Are you sure you want to delete this workshop?')) return;
 
     try {
@@ -298,7 +298,7 @@ const NGODashboard = () => {
                   <div className="space-y-2 mb-4">
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <Calendar className="w-4 h-4" />
-                      {new Date(workshop.workshop_date).toLocaleDateString()} at {workshop.workshop_time}
+                      {new Date(workshop.scheduled_date).toLocaleDateString()} at {new Date(workshop.scheduled_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <MapPin className="w-4 h-4" />

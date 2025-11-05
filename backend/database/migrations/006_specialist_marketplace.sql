@@ -45,9 +45,20 @@ CREATE TABLE IF NOT EXISTS workshops (
     organizer_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
     description TEXT,
-    scheduled_date DATE,
+    scheduled_date TIMESTAMP NOT NULL,
+    location VARCHAR(255),
+    max_participants INTEGER DEFAULT 30,
     status VARCHAR(20) DEFAULT 'upcoming' CHECK (status IN ('upcoming', 'ongoing', 'completed', 'cancelled')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Workshop Participants Table (for tracking student registrations)
+CREATE TABLE IF NOT EXISTS workshop_participants (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    workshop_id UUID NOT NULL REFERENCES workshops(id) ON DELETE CASCADE,
+    student_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(workshop_id, student_id)
 );
 
 -- Create indexes for better query performance
@@ -58,6 +69,9 @@ CREATE INDEX IF NOT EXISTS idx_assignments_student ON specialist_assignments(stu
 CREATE INDEX IF NOT EXISTS idx_assignments_specialist ON specialist_assignments(specialist_id);
 CREATE INDEX IF NOT EXISTS idx_ratings_specialist ON specialist_ratings(specialist_id);
 CREATE INDEX IF NOT EXISTS idx_workshops_organizer ON workshops(organizer_id);
+CREATE INDEX IF NOT EXISTS idx_workshops_scheduled_date ON workshops(scheduled_date);
+CREATE INDEX IF NOT EXISTS idx_workshop_participants_workshop ON workshop_participants(workshop_id);
+CREATE INDEX IF NOT EXISTS idx_workshop_participants_student ON workshop_participants(student_id);
 
 -- Add trigger to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
