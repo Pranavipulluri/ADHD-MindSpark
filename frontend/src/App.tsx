@@ -8,7 +8,9 @@ import Dashboard from './pages/Dashboard';
 import Games from './pages/Games';
 import Library from './pages/Library';
 import MentorDashboard from './pages/MentorDashboard';
+import MentorProfile from './pages/MentorProfile';
 import NGODashboard from './pages/NGODashboard';
+import NGOProfile from './pages/NGOProfile';
 import Specialists from './pages/Specialists';
 import Tasks from './pages/Tasks';
 import Workshops from './pages/Workshops';
@@ -102,6 +104,18 @@ function App() {
                 )
               }
             />
+            
+            {/* Mentor Profile Route */}
+            <Route
+              path="/mentor/profile"
+              element={
+                userRole === 'mentor' ? (
+                  <MentorProfile />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              }
+            />
 
             {/* NGO Route */}
             <Route
@@ -109,6 +123,18 @@ function App() {
               element={
                 userRole === 'ngo' ? (
                   <NGODashboard />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              }
+            />
+            
+            {/* NGO Profile Route */}
+            <Route
+              path="/ngo/profile"
+              element={
+                userRole === 'ngo' ? (
+                  <NGOProfile />
                 ) : (
                   <Navigate to="/" replace />
                 )

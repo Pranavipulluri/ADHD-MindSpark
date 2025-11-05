@@ -317,4 +317,196 @@ router.delete('/workshops/:id/register', authenticateToken, async (req, res) => 
   }
 });
 
+// Get NGO profile
+router.get('/profile', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'ngo') {
+      return res.status(403).json({
+        success: false,
+        error: 'Only NGOs can access this endpoint'
+      });
+    }
+
+    const result = await pool.query(`
+      SELECT 
+        id,
+        username,
+        email,
+        avatar_url,
+        bio,
+        organization_name,
+        organization_type,
+        contact_phone,
+        website_url,
+        address,
+        created_at
+      FROM profiles
+      WHERE id = $1
+    `, [req.user.id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Profile not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      profile: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Error fetching NGO profile:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch profile'
+    });
+  }
+});
+
+// Update NGO profile
+router.put('/profile', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'ngo') {
+      return res.status(403).json({
+        success: false,
+        error: 'Only NGOs can update this profile'
+      });
+    }
+
+    const {
+      bio,
+      organization_name,
+      organization_type,
+      contact_phone,
+      website_url,
+      address,
+      avatar_url
+    } = req.body;
+
+    const result = await pool.query(`
+      UPDATE profiles
+      SET
+        bio = COALESCE($1, bio),
+        organization_name = COALESCE($2, organization_name),
+        organization_type = COALESCE($3, organization_type),
+        contact_phone = COALESCE($4, contact_phone),
+        website_url = COALESCE($5, website_url),
+        address = COALESCE($6, address),
+        avatar_url = COALESCE($7, avatar_url),
+        updated_at = NOW()
+      WHERE id = $8
+      RETURNING id, username, email, bio, organization_name, organization_type, contact_phone, website_url, address, avatar_url
+    `, [bio, organization_name, organization_type, contact_phone, website_url, address, avatar_url, req.user.id]);
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      profile: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Error updating NGO profile:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update profile'
+    });
+  }
+});
+
+// Get NGO profile
+router.get('/profile', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'ngo') {
+      return res.status(403).json({
+        success: false,
+        error: 'Only NGOs can access this resource'
+      });
+    }
+
+    const profile = await pool.query(`
+      SELECT 
+        username, 
+        email, 
+        bio, 
+        organization_name,
+        organization_type,
+        contact_phone,
+        website_url,
+        address,
+        avatar_url
+      FROM profiles 
+      WHERE id = $1
+    `, [req.user.id]);
+    
+    if (profile.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Profile not found'
+      });
+    }
+    
+    res.json({
+      success: true,
+      profile: profile.rows[0]
+    });
+  } catch (error) {
+    console.error('Profile fetch error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch profile'
+    });
+  }
+});
+
+// Update NGO profile
+router.put('/profile', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'ngo') {
+      return res.status(403).json({
+        success: false,
+        error: 'Only NGOs can update their profile'
+      });
+    }
+
+    const {
+      username,
+      bio,
+      organization_name,
+      organization_type,
+      contact_phone,
+      website_url,
+      address,
+      avatar_url
+    } = req.body;
+    
+    const updatedProfile = await pool.query(`
+      UPDATE profiles 
+      SET 
+        username = COALESCE($1, username),
+        bio = COALESCE($2, bio),
+        organization_name = COALESCE($3, organization_name),
+        organization_type = COALESCE($4, organization_type),
+        contact_phone = COALESCE($5, contact_phone),
+        website_url = COALESCE($6, website_url),
+        address = COALESCE($7, address),
+        avatar_url = COALESCE($8, avatar_url),
+        updated_at = NOW()
+      WHERE id = $9
+      RETURNING username, email, bio, organization_name, organization_type, contact_phone, website_url, address, avatar_url
+    `, [username, bio, organization_name, organization_type, contact_phone, website_url, address, avatar_url, req.user.id]);
+    
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      profile: updatedProfile.rows[0]
+    });
+  } catch (error) {
+    console.error('Profile update error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update profile'
+    });
+  }
+});
+
 module.exports = router;
