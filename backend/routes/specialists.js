@@ -53,6 +53,7 @@ router.post('/appointments', authenticateToken, async (req, res) => {
 
   if (!specialist_id || !appointment_date) {
     return res.status(400).json({ 
+      success: false,
       error: 'Specialist ID and appointment date are required' 
     });
   }
@@ -65,7 +66,10 @@ router.post('/appointments', authenticateToken, async (req, res) => {
     );
 
     if (specialistCheck.rows.length === 0) {
-      return res.status(404).json({ error: 'Specialist not found' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'Specialist not found' 
+      });
     }
 
     // Create appointment
@@ -149,11 +153,6 @@ router.post('/register-student', authenticateToken, async (req, res) => {
     });
   }
 });
-      error: 'Failed to register with specialist',
-      details: error.message 
-    });
-  }
-});
 
 // Rate a specialist
 router.post('/rate', authenticateToken, async (req, res) => {
@@ -162,12 +161,14 @@ router.post('/rate', authenticateToken, async (req, res) => {
 
   if (!specialist_id || !rating) {
     return res.status(400).json({ 
+      success: false,
       error: 'Specialist ID and rating are required' 
     });
   }
 
   if (rating < 1 || rating > 5) {
     return res.status(400).json({ 
+      success: false,
       error: 'Rating must be between 1 and 5' 
     });
   }
@@ -180,7 +181,10 @@ router.post('/rate', authenticateToken, async (req, res) => {
     );
 
     if (specialistCheck.rows.length === 0) {
-      return res.status(404).json({ error: 'Specialist not found' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'Specialist not found' 
+      });
     }
 
     // Create or update rating
@@ -194,12 +198,14 @@ router.post('/rate', authenticateToken, async (req, res) => {
     );
 
     res.status(201).json({ 
+      success: true,
       message: 'Rating submitted successfully',
       rating: result.rows[0] 
     });
   } catch (error) {
     console.error('Error submitting rating:', error);
     res.status(500).json({ 
+      success: false,
       error: 'Failed to submit rating',
       details: error.message 
     });
