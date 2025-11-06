@@ -43,7 +43,7 @@ export const DocumentProcessor: React.FC<DocumentProcessorProps> = ({ onClose })
   const loadStoredDocuments = async () => {
     setIsLoadingDocuments(true);
     try {
-      const response = await fetch('/api/documents', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/documents`, {
         headers: {
           'Authorization': 'Bearer demo-token-123',
           'Content-Type': 'application/json'
@@ -212,7 +212,7 @@ export const DocumentProcessor: React.FC<DocumentProcessorProps> = ({ onClose })
       formData.append('file', selectedFile);
       formData.append('title', selectedFile.name);
 
-      const response = await fetch('/api/documents', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/documents`, {
         method: 'POST',
         headers: {
           'Authorization': 'Bearer demo-token-123'
