@@ -532,9 +532,11 @@ app.use((req, res) => {
 });
 
 // Start server
-server.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+const HOST = '0.0.0.0'; // Listen on all network interfaces for Railway
+server.listen(PORT, HOST, () => {
+  console.log(`🚀 Server running on ${HOST}:${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/health`);
+  console.log(`🗄️ Using ${dbType} database`);
 });
 
 process.on('SIGTERM', () => {
