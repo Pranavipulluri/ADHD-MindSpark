@@ -11,44 +11,52 @@ const pool = new Pool({
   ssl: false
 });
 
-// Import BART processing function
-const { processWithBART } = require('../enhanced-document-processor');
+// Import BART processing function (optional - only if file exists)
+let processWithBART;
+try {
+  processWithBART = require('../enhanced-document-processor').processWithBART;
+} catch (err) {
+  console.log('ℹ️ Enhanced document processor not available, using fallback methods');
+  processWithBART = null;
+}
 
 // Main AI processing function
 async function processContent(content, type = 'document') {
   let processed;
   
   try {
-    console.log('🧠 Processing content with BART AI Summarizer...');
+    console.log('🧠 Processing content with AI...');
     
-    // Try BART AI first (local transformers)
-    try {
-      console.log('🤖 Using BART transformer for AI processing...');
-      const bartResult = await processWithBART(content);
-      
-      if (bartResult && bartResult.summary) {
-        console.log('✅ BART AI processing successful');
+    // Try BART AI first (local transformers) - only if available
+    if (processWithBART) {
+      try {
+        console.log('🤖 Using BART transformer for AI processing...');
+        const bartResult = await processWithBART(content);
         
-        // Enhance BART result with additional local processing
-        processed = {
-          summary: bartResult.summary,
-          questions: generateQuestions(content),
-          keyPoints: bartResult.key_points || extractKeyPoints(content),
-          concepts: extractConcepts(content),
-          flashcards: generateFlashcards(content),
-          quiz: generateQuiz(content),
-          analysis: analyzeContent(content),
-          timestamp: new Date(),
-          processedBy: 'BART AI Transformer',
-          originalContent: content.slice(0, 500) + (content.length > 500 ? '...' : '')
-        };
+        if (bartResult && bartResult.summary) {
+          console.log('✅ BART AI processing successful');
         
-        console.log('🎯 BART AI processing completed successfully');
-        return processed;
+          // Enhance BART result with additional local processing
+          processed = {
+            summary: bartResult.summary,
+            questions: generateQuestions(content),
+            keyPoints: bartResult.key_points || extractKeyPoints(content),
+            concepts: extractConcepts(content),
+            flashcards: generateFlashcards(content),
+            quiz: generateQuiz(content),
+            analysis: analyzeContent(content),
+            timestamp: new Date(),
+            processedBy: 'BART AI Transformer',
+            originalContent: content.slice(0, 500) + (content.length > 500 ? '...' : '')
+          };
+          
+          console.log('🎯 BART AI processing completed successfully');
+          return processed;
+        }
+      } catch (bartError) {
+        console.log('❌ BART processing failed:', bartError.message);
+        console.log('🔄 Falling back to Gemini API...');
       }
-    } catch (bartError) {
-      console.log('❌ BART processing failed:', bartError.message);
-      console.log('🔄 Falling back to Gemini API...');
     }
     
     // Try Gemini API as fallback
