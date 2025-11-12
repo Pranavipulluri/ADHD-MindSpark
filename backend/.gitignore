@@ -134,7 +134,6 @@ create-demo-user.js
 process-real-content.js
 reprocess-documents.js
 update-document-content.js
-enhanced-document-processor.js
 ai-helpers.js
 test-results/
 playwright-report/
