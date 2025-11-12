@@ -11,14 +11,8 @@ const pool = new Pool({
   ssl: false
 });
 
-// Import BART processing function (optional - only if file exists)
-let processWithBART;
-try {
-  processWithBART = require('../enhanced-document-processor').processWithBART;
-} catch (err) {
-  console.log('ℹ️ Enhanced document processor not available, using fallback methods');
-  processWithBART = null;
-}
+// Import BART processing function
+const { processWithBART } = require('../enhanced-document-processor');
 
 // Main AI processing function
 async function processContent(content, type = 'document') {
@@ -27,14 +21,13 @@ async function processContent(content, type = 'document') {
   try {
     console.log('🧠 Processing content with AI...');
     
-    // Try BART AI first (local transformers) - only if available
-    if (processWithBART) {
-      try {
-        console.log('🤖 Using BART transformer for AI processing...');
-        const bartResult = await processWithBART(content);
-        
-        if (bartResult && bartResult.summary) {
-          console.log('✅ BART AI processing successful');
+    // Try BART AI first (local transformers)
+    try {
+      console.log('🤖 Using BART transformer for AI processing...');
+      const bartResult = await processWithBART(content);
+      
+      if (bartResult && bartResult.summary) {
+        console.log('✅ BART AI processing successful');
         
           // Enhance BART result with additional local processing
           processed = {
@@ -51,16 +44,13 @@ async function processContent(content, type = 'document') {
           };
           
           console.log('🎯 BART AI processing completed successfully');
-          return processed;
-        }
-      } catch (bartError) {
-        console.log('❌ BART processing failed:', bartError.message);
-        console.log('🔄 Falling back to Gemini API...');
+        console.log('🎯 BART AI processing completed successfully');
+        return processed;
       }
-    }
-    
-    // Try Gemini API as fallback
-    if (process.env.GEMINI_API_KEY) {
+    } catch (bartError) {
+      console.log('❌ BART processing failed:', bartError.message);
+      console.log('🔄 Falling back to Gemini API...');
+    }    if (process.env.GEMINI_API_KEY) {
       const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
       
       // Try multiple model names in order of preference
