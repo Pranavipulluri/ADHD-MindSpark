@@ -15,6 +15,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
   const [username, setUsername] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [parentEmail, setParentEmail] = useState('');
+  const [role, setRole] = useState<'student' | 'mentor' | 'ngo'>('student');
   const [error, setError] = useState('');
   const { login, register } = useAuthStore();
 
@@ -30,7 +31,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
           email,
           password,
           dateOfBirth: '2000-01-01', // Default date
-          parentEmail: email // Use same email for now
+          parentEmail: email, // Use same email for now
+          role // Include role in registration
         });
       } else {
         await login(email, password);
@@ -64,6 +66,60 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
+
+          {isSignUp && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                I am a:
+              </label>
+              <div className="space-y-2">
+                <label className="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-purple-50 transition-colors">
+                  <input
+                    type="radio"
+                    name="role"
+                    value="student"
+                    checked={role === 'student'}
+                    onChange={(e) => setRole(e.target.value as 'student' | 'mentor' | 'ngo')}
+                    className="mr-3 text-purple-600 focus:ring-purple-500"
+                  />
+                  <div>
+                    <span className="font-semibold text-purple-800">Student</span>
+                    <p className="text-sm text-gray-600">Access learning materials and track progress</p>
+                  </div>
+                </label>
+
+                <label className="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-purple-50 transition-colors">
+                  <input
+                    type="radio"
+                    name="role"
+                    value="mentor"
+                    checked={role === 'mentor'}
+                    onChange={(e) => setRole(e.target.value as 'student' | 'mentor' | 'ngo')}
+                    className="mr-3 text-purple-600 focus:ring-purple-500"
+                  />
+                  <div>
+                    <span className="font-semibold text-purple-800">Mentor/Specialist</span>
+                    <p className="text-sm text-gray-600">Guide students and manage appointments</p>
+                  </div>
+                </label>
+
+                <label className="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-purple-50 transition-colors">
+                  <input
+                    type="radio"
+                    name="role"
+                    value="ngo"
+                    checked={role === 'ngo'}
+                    onChange={(e) => setRole(e.target.value as 'student' | 'mentor' | 'ngo')}
+                    className="mr-3 text-purple-600 focus:ring-purple-500"
+                  />
+                  <div>
+                    <span className="font-semibold text-purple-800">NGO/Organization</span>
+                    <p className="text-sm text-gray-600">Organize workshops and help communities</p>
+                  </div>
+                </label>
+              </div>
+            </div>
+          )}
 
           {error && (
             <p className="text-red-500 text-sm mb-4">{error}</p>

@@ -10,6 +10,7 @@ interface User {
   level: number;
   avatar_url?: string;
   streak_days?: number;
+  role?: 'student' | 'mentor' | 'ngo';
 }
 
 interface AuthState {
@@ -40,6 +41,8 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true });
         try {
           const response = await apiClient.login(email, password);
+          // Store user data including role
+          localStorage.setItem('user', JSON.stringify(response.user));
           set({
             user: response.user,
             isAuthenticated: true,
@@ -55,6 +58,8 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true });
         try {
           const response = await apiClient.register(userData);
+          // Store user data including role
+          localStorage.setItem('user', JSON.stringify(response.user));
           set({
             user: response.user,
             isAuthenticated: true,
@@ -68,6 +73,7 @@ export const useAuthStore = create<AuthState>()(
 
       logout: () => {
         apiClient.logout();
+        localStorage.removeItem('user');
         set({
           user: null,
           isAuthenticated: false,
