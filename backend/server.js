@@ -304,6 +304,14 @@ app.use('/api/tasks', tasksRoutes);
 const documentsRoutes = require('./routes/documents');
 app.use('/api/documents', documentsRoutes);
 
+// MENTOR ROUTES
+const mentorsRoutes = require('./routes/mentors');
+app.use('/api/mentors', mentorsRoutes);
+
+// NGO ROUTES
+const ngosRoutes = require('./routes/ngos');
+app.use('/api/ngos', ngosRoutes);
+
 // Local helper functions for document processing (keeping only what's needed)
 function generateSimpleSummary(text) {
   const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 10);

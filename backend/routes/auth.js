@@ -12,7 +12,7 @@ const router = express.Router();
 // Helper function to generate JWT
 const generateToken = (user) => {
   return jwt.sign(
-    { id: user.id, email: user.email, username: user.username },
+    { id: user.id, email: user.email, username: user.username, role: user.role },
     config.jwt.secret,
     { expiresIn: config.jwt.expiresIn }
   );
@@ -21,7 +21,17 @@ const generateToken = (user) => {
 // Register new user
 router.post('/register', authRateLimit, validate(registerSchema), async (req, res) => {
   try {
-    const { email, password, username, dateOfBirth, parentEmail } = req.validatedData;
+    const { email, password, username, dateOfBirth, parentEmail, role } = req.validatedData;
+    
+    // Validate role
+    const userRole = role || 'student';
+    const validRoles = ['student', 'mentor', 'ngo'];
+    if (!validRoles.includes(userRole)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid role specified'
+      });
+    }
     
     // Check if user already exists
     const existingUser = await pool.query(
@@ -42,10 +52,10 @@ router.post('/register', authRateLimit, validate(registerSchema), async (req, re
     // Create user profile
     const userId = uuidv4();
     const newUser = await pool.query(`
-      INSERT INTO profiles (id, email, username, password_hash, date_of_birth, parent_email, points, level)
-      VALUES ($1, $2, $3, $4, $5, $6, 0, 1)
-      RETURNING id, email, username, points, level, created_at
-    `, [userId, email, username, hashedPassword, dateOfBirth, parentEmail]);
+      INSERT INTO profiles (id, email, username, password_hash, date_of_birth, parent_email, points, level, role)
+      VALUES ($1, $2, $3, $4, $5, $6, 0, 1, $7)
+      RETURNING id, email, username, points, level, role, created_at
+    `, [userId, email, username, hashedPassword, dateOfBirth, parentEmail, userRole]);
     
     const user = newUser.rows[0];
     const token = generateToken(user);
@@ -58,7 +68,8 @@ router.post('/register', authRateLimit, validate(registerSchema), async (req, re
         email: user.email,
         username: user.username,
         points: user.points,
-        level: user.level
+        level: user.level,
+        role: user.role
       },
       token
     });
@@ -121,7 +132,8 @@ router.post('/login', authRateLimit, validate(loginSchema), async (req, res) => 
         points: user.points,
         level: user.level,
         avatar_url: user.avatar_url,
-        streak_days: user.streak_days
+        streak_days: user.streak_days,
+        role: user.role || 'student'
       },
       token
     });
