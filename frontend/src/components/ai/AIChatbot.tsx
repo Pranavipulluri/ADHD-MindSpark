@@ -73,12 +73,26 @@ export const AIChatbot: React.FC = () => {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentInput = input;
     setInput('');
     setIsLoading(true);
 
     // Get AI response
     try {
-      const responseText = await generateResponse(input);
+      // Send conversation history for context
+      const conversationHistory = messages.slice(-6).map(msg => ({
+        text: msg.text,
+        isBot: msg.isBot
+      }));
+
+      const response = await apiClient.chatWithAI(currentInput, conversationHistory);
+      
+      let responseText;
+      if (response.success && response.response) {
+        responseText = response.response;
+      } else {
+        responseText = await generateResponse(currentInput);
+      }
       
       const botResponse: Message = {
         id: (Date.now() + 1).toString(),
@@ -94,7 +108,7 @@ export const AIChatbot: React.FC = () => {
       console.error('Failed to get AI response:', error);
       const errorResponse: Message = {
         id: (Date.now() + 1).toString(),
-        text: "Sorry, I'm having trouble thinking right now. Can you try asking again? 🤔",
+        text: "Oops! I'm having a little trouble thinking right now. 🤔 Can you try asking me again? I promise I'm here to help!",
         isBot: true,
         timestamp: new Date()
       };
