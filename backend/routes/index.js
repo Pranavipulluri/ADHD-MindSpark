@@ -13,6 +13,7 @@ const appointmentRoutes = require('./appointments');
 const focusSessionRoutes = require('./focusSessions');
 const progressRoutes = require('./progress');
 const aiRoutes = require('./ai');
+const ngoRoutes = require('./ngo');
 
 const router = express.Router();
 
@@ -37,7 +38,8 @@ router.get('/', (req, res) => {
       appointments: '/api/appointments',
       'focus-sessions': '/api/focus-sessions',
       progress: '/api/progress',
-      ai: '/api/ai'
+      ai: '/api/ai',
+      ngo: '/api/ngo'
     },
     timestamp: new Date().toISOString()
   });
@@ -55,5 +57,6 @@ router.use('/appointments', appointmentRoutes);
 router.use('/focus-sessions', focusSessionRoutes);
 router.use('/progress', progressRoutes);
 router.use('/ai', aiRoutes);
+router.use('/ngo', ngoRoutes);
 
 module.exports = router;

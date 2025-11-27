@@ -11,6 +11,7 @@ import MentorDashboard from './pages/MentorDashboard';
 import NGODashboard from './pages/NGODashboard';
 import Specialists from './pages/Specialists';
 import Tasks from './pages/Tasks';
+import Workshops from './pages/Workshops';
 
 function App() {
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -87,6 +88,7 @@ function App() {
             <Route path="/tasks" element={<Tasks />} />
             <Route path="/library" element={<Library />} />
             <Route path="/specialists" element={<Specialists />} />
+            <Route path="/workshops" element={<Workshops />} />
             <Route path="/community" element={<Community />} />
 
             {/* Mentor Route */}

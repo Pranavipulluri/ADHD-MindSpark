@@ -1,4 +1,4 @@
-import { Brain, CheckSquare, Gamepad2, LibraryBig, LogOut, MessageCircle, Trophy, User, Users } from 'lucide-react';
+import { Brain, Calendar, CheckSquare, Gamepad2, LibraryBig, LogOut, MessageCircle, Trophy, User, Users } from 'lucide-react';
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../stores/useAuthStore';
@@ -51,6 +51,7 @@ const Navbar: React.FC = () => {
         { name: 'Tasks', path: '/tasks', icon: 'CheckSquare' },
         { name: 'Library', path: '/library', icon: 'LibraryBig' },
         { name: 'Specialists', path: '/specialists', icon: 'Users' },
+        { name: 'Workshops', path: '/workshops', icon: 'Calendar' },
         { name: 'Community', path: '/community', icon: 'MessageCircle' },
       ];
     }
@@ -65,6 +66,7 @@ const Navbar: React.FC = () => {
       case 'CheckSquare': return <CheckSquare className="w-5 h-5" />;
       case 'LibraryBig': return <LibraryBig className="w-5 h-5" />;
       case 'Users': return <Users className="w-5 h-5" />;
+      case 'Calendar': return <Calendar className="w-5 h-5" />;
       case 'MessageCircle': return <MessageCircle className="w-5 h-5" />;
       default: return null;
     }
