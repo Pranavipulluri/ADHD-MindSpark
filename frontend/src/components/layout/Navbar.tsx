@@ -15,14 +15,48 @@ const Navbar: React.FC = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   
-  const navItems: NavItem[] = [
-    { name: 'Dashboard', path: '/', icon: 'Brain' },
-    { name: 'Games', path: '/games', icon: 'Gamepad2' },
-    { name: 'Tasks', path: '/tasks', icon: 'CheckSquare' },
-    { name: 'Library', path: '/library', icon: 'LibraryBig' },
-    { name: 'Specialists', path: '/specialists', icon: 'Users' },
-    { name: 'Community', path: '/community', icon: 'MessageCircle' },
-  ];
+  // Get user role from localStorage
+  const getUserRole = () => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        const userData = JSON.parse(storedUser);
+        return userData.role || 'student';
+      } catch {
+        return 'student';
+      }
+    }
+    return 'student';
+  };
+  
+  const userRole = getUserRole();
+  
+  // Different nav items based on role
+  const getNavItems = (): NavItem[] => {
+    if (userRole === 'mentor') {
+      // Mentors only see Dashboard
+      return [
+        { name: 'Dashboard', path: '/mentor', icon: 'Brain' },
+      ];
+    } else if (userRole === 'ngo') {
+      // NGOs only see Dashboard
+      return [
+        { name: 'Dashboard', path: '/ngo', icon: 'Brain' },
+      ];
+    } else {
+      // Students see all pages
+      return [
+        { name: 'Dashboard', path: '/', icon: 'Brain' },
+        { name: 'Games', path: '/games', icon: 'Gamepad2' },
+        { name: 'Tasks', path: '/tasks', icon: 'CheckSquare' },
+        { name: 'Library', path: '/library', icon: 'LibraryBig' },
+        { name: 'Specialists', path: '/specialists', icon: 'Users' },
+        { name: 'Community', path: '/community', icon: 'MessageCircle' },
+      ];
+    }
+  };
+  
+  const navItems = getNavItems();
   
   const getIcon = (iconName: string) => {
     switch (iconName) {
@@ -67,17 +101,21 @@ const Navbar: React.FC = () => {
 
           {user ? (
             <div className="flex items-center space-x-3 ml-4">
-              {/* Points Display */}
-              <div className="flex items-center space-x-2 bg-purple-100 text-purple-700 px-3 py-1 rounded-full">
-                <Trophy className="w-4 h-4" />
-                <span className="font-semibold text-sm">{totalPoints || 0}</span>
-                <span className="text-xs">pts</span>
-              </div>
-              
-              {/* Level Display */}
-              <div className="flex items-center space-x-1 bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                <span className="text-xs font-medium">Lv.{level || 1}</span>
-              </div>
+              {/* Points Display - Only for students */}
+              {userRole === 'student' && (
+                <>
+                  <div className="flex items-center space-x-2 bg-purple-100 text-purple-700 px-3 py-1 rounded-full">
+                    <Trophy className="w-4 h-4" />
+                    <span className="font-semibold text-sm">{totalPoints || 0}</span>
+                    <span className="text-xs">pts</span>
+                  </div>
+                  
+                  {/* Level Display */}
+                  <div className="flex items-center space-x-1 bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                    <span className="text-xs font-medium">Lv.{level || 1}</span>
+                  </div>
+                </>
+              )}
               
               {/* Profile Button */}
               <Button

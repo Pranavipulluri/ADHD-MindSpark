@@ -5,8 +5,157 @@ const { validateQuery, paginationSchema } = require('../middleware/validation');
 
 const router = express.Router();
 
-// Get all specialists
-router.get('/', optionalAuth, validateQuery(paginationSchema), async (req, res) => {
+// SIMPLE: Get all mentors for students to see
+router.get('/', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        p.id,
+        p.username,
+        p.email,
+        p.bio,
+        p.specialization,
+        p.avatar_url,
+        COALESCE(AVG(sr.rating), 5.0) as rating,
+        COUNT(DISTINCT sa.student_id) as total_students,
+        COUNT(DISTINCT w.id) as workshops_conducted
+      FROM profiles p
+      LEFT JOIN specialist_ratings sr ON p.id = sr.specialist_id
+      LEFT JOIN specialist_assignments sa ON p.id = sa.specialist_id
+      LEFT JOIN workshops w ON p.organizer_id = w.organizer_id
+      WHERE p.role = 'mentor'
+      GROUP BY p.id, p.username, p.email, p.bio, p.specialization, p.avatar_url
+      ORDER BY rating DESC, total_students DESC
+    `);
+
+    res.json({
+      success: true,
+      specialists: result.rows
+    });
+  } catch (error) {
+    console.error('Error fetching specialists:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch specialists'
+    });
+  }
+});
+
+// Book appointment with specialist
+router.post('/appointments', authenticateToken, async (req, res) => {
+  try {
+    const { specialist_id, date, time, notes } = req.body;
+    const student_id = req.user.id;
+
+    if (!specialist_id || !date || !time) {
+      return res.status(400).json({
+        success: false,
+        error: 'Specialist ID, date, and time are required'
+      });
+    }
+
+    const result = await pool.query(`
+      INSERT INTO specialist_appointments (student_id, specialist_id, appointment_date, appointment_time, notes, status)
+      VALUES ($1, $2, $3, $4, $5, 'pending')
+      RETURNING *
+    `, [student_id, specialist_id, date, time, notes || '']);
+
+    res.json({
+      success: true,
+      message: 'Appointment request sent successfully',
+      appointment: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Error booking appointment:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to book appointment'
+    });
+  }
+});
+
+// Register as student under a specialist
+router.post('/register-student', authenticateToken, async (req, res) => {
+  try {
+    const { specialist_id } = req.body;
+    const student_id = req.user.id;
+
+    if (!specialist_id) {
+      return res.status(400).json({
+        success: false,
+        error: 'Specialist ID is required'
+      });
+    }
+
+    // Check if already registered
+    const existingAssignment = await pool.query(
+      'SELECT * FROM specialist_assignments WHERE student_id = $1 AND specialist_id = $2',
+      [student_id, specialist_id]
+    );
+
+    if (existingAssignment.rows.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'You are already registered under this specialist'
+      });
+    }
+
+    const result = await pool.query(`
+      INSERT INTO specialist_assignments (student_id, specialist_id)
+      VALUES ($1, $2)
+      RETURNING *
+    `, [student_id, specialist_id]);
+
+    res.json({
+      success: true,
+      message: 'Successfully registered as student',
+      assignment: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Error registering student:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to register as student'
+    });
+  }
+});
+
+// Rate a specialist (students can rate after appointment)
+router.post('/rate', authenticateToken, async (req, res) => {
+  try {
+    const { specialist_id, rating, review } = req.body;
+    const student_id = req.user.id;
+
+    if (!specialist_id || !rating || rating < 1 || rating > 5) {
+      return res.status(400).json({
+        success: false,
+        error: 'Valid specialist ID and rating (1-5) are required'
+      });
+    }
+
+    const result = await pool.query(`
+      INSERT INTO specialist_ratings (student_id, specialist_id, rating, review)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (student_id, specialist_id) 
+      DO UPDATE SET rating = $3, review = $4, created_at = NOW()
+      RETURNING *
+    `, [student_id, specialist_id, rating, review || '']);
+
+    res.json({
+      success: true,
+      message: 'Rating submitted successfully',
+      rating: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Error rating specialist:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to submit rating'
+    });
+  }
+});
+
+module.exports = router;
   try {
     const { specialization, is_available, page = 1, limit = 20, sort_by = 'rating' } = req.query;
     const offset = (page - 1) * limit;
