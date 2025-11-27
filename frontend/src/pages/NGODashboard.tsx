@@ -1,5 +1,5 @@
+import { Calendar, Edit, MapPin, Plus, Trash2, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Calendar, Users, MapPin, Plus, Edit, Trash2 } from 'lucide-react';
 
 interface Workshop {
   id: number;

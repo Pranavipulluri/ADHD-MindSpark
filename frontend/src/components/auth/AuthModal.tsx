@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useAuthStore } from '../../stores/useAuthStore';
+import Button from '../ui/Button';
 import Card from '../ui/Card';
 import Input from '../ui/Input';
-import Button from '../ui/Button';
 
 interface AuthModalProps {
   onClose: () => void;

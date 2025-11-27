@@ -1,5 +1,5 @@
-import { Route, BrowserRouter as Router, Routes, Navigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import './App.css';
 import Navbar from './components/layout/Navbar';
 import NotificationSystem from './components/ui/NotificationSystem';
@@ -7,30 +7,46 @@ import Community from './pages/Community';
 import Dashboard from './pages/Dashboard';
 import Games from './pages/Games';
 import Library from './pages/Library';
-import Specialists from './pages/Specialists';
-import Tasks from './pages/Tasks';
 import MentorDashboard from './pages/MentorDashboard';
 import NGODashboard from './pages/NGODashboard';
+import Specialists from './pages/Specialists';
+import Tasks from './pages/Tasks';
 
 function App() {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get user role from localStorage or API
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      try {
-        const user = JSON.parse(storedUser);
-        setUserRole(user.role || 'student');
-      } catch (error) {
-        console.error('Error parsing user data:', error);
-        setUserRole('student');
+    // Function to update role from localStorage
+    const updateRole = () => {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        try {
+          const user = JSON.parse(storedUser);
+          console.log('User role from localStorage:', user.role);
+          setUserRole(user.role || 'student');
+        } catch (error) {
+          console.error('Error parsing user data:', error);
+          setUserRole('student');
+        }
+      } else {
+        setUserRole('student'); // Default to student if not logged in
       }
-    } else {
-      setUserRole('student'); // Default to student if not logged in
-    }
-    setLoading(false);
+      setLoading(false);
+    };
+
+    updateRole();
+
+    // Listen for storage changes (when user logs in/out)
+    window.addEventListener('storage', updateRole);
+    
+    // Also listen for custom event when user logs in
+    window.addEventListener('user-login', updateRole);
+
+    return () => {
+      window.removeEventListener('storage', updateRole);
+      window.removeEventListener('user-login', updateRole);
+    };
   }, []);
 
   if (loading) {

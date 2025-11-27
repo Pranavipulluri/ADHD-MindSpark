@@ -1,5 +1,5 @@
+import { BookOpen, Calendar, CheckCircle, Clock, Users, XCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Calendar, Users, CheckCircle, XCircle, Clock, BookOpen } from 'lucide-react';
 
 interface Appointment {
   id: number;
