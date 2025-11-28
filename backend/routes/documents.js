@@ -182,16 +182,22 @@ router.post('/', authenticateToken, uploadRateLimit, upload.single('file'), asyn
         aiProcessing = await processContent(contentToProcess, 'document');
         
         // Update document with AI processing results
-        await pool.query(`
-          UPDATE documents 
-          SET ai_summary = $1, ai_processed_at = NOW()
-          WHERE id = $2
-        `, [JSON.stringify(aiProcessing), document.rows[0].id]);
-        
-        console.log('✅ AI processing completed for document');
+        if (aiProcessing) {
+          await pool.query(`
+            UPDATE documents 
+            SET ai_summary = $1, ai_processed_at = NOW()
+            WHERE id = $2
+          `, [JSON.stringify(aiProcessing), document.rows[0].id]);
+          
+          console.log('✅ AI processing completed for document');
+        }
       } catch (aiError) {
-        console.error('❌ AI processing failed:', aiError.message);
-        // Don't fail the upload if AI processing fails
+        console.error('❌ AI processing failed (non-critical):', aiError.message);
+        // Don't fail the upload if AI processing fails - it's optional
+        aiProcessing = {
+          summary: "AI processing unavailable - document uploaded successfully",
+          error: aiError.message
+        };
       }
     }
     
