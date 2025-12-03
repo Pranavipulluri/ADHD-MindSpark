@@ -381,4 +381,83 @@ router.get('/workshops', authenticateToken, isMentor, async (req, res) => {
   }
 });
 
+// Get mentor profile
+router.get('/profile', authenticateToken, isMentor, async (req, res) => {
+  try {
+    const profile = await pool.query(`
+      SELECT 
+        username, 
+        email, 
+        bio, 
+        specialization, 
+        avatar_url,
+        certifications,
+        experience_years
+      FROM profiles 
+      WHERE id = $1
+    `, [req.user.id]);
+    
+    if (profile.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Profile not found'
+      });
+    }
+    
+    res.json({
+      success: true,
+      profile: {
+        ...profile.rows[0],
+        certifications: profile.rows[0].certifications || []
+      }
+    });
+  } catch (error) {
+    console.error('Profile fetch error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch profile'
+    });
+  }
+});
+
+// Update mentor profile
+router.put('/profile', authenticateToken, isMentor, async (req, res) => {
+  try {
+    const {
+      username,
+      bio,
+      specialization,
+      certifications,
+      experience_years,
+      avatar_url
+    } = req.body;
+    
+    const updatedProfile = await pool.query(`
+      UPDATE profiles 
+      SET 
+        username = COALESCE($1, username),
+        bio = COALESCE($2, bio),
+        specialization = COALESCE($3, specialization),
+        certifications = COALESCE($4, certifications),
+        experience_years = COALESCE($5, experience_years),
+        avatar_url = COALESCE($6, avatar_url),
+        updated_at = NOW()
+      WHERE id = $7
+      RETURNING username, email, bio, specialization, certifications, experience_years, avatar_url
+    `, [username, bio, specialization, certifications, experience_years, avatar_url, req.user.id]);
+    
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      profile: updatedProfile.rows[0]
+    });
+  } catch (error) {
+    console.error('Profile update error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update profile'
+    });
+  }
+});
+
 module.exports = router;
