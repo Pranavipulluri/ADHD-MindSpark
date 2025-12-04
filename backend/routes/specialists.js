@@ -45,7 +45,7 @@ router.get('/', authenticateToken, async (req, res) => {
 // Book an appointment with a specialist
 router.post('/appointments', authenticateToken, async (req, res) => {
   const { specialist_id, appointment_date, notes } = req.body;
-  const student_id = req.user.userId;
+  const student_id = req.user.id;
 
   if (!specialist_id || !appointment_date) {
     return res.status(400).json({ 
@@ -97,7 +97,7 @@ router.post('/appointments', authenticateToken, async (req, res) => {
 // Register a student with a specialist (for student count tracking)
 router.post('/register-student', authenticateToken, async (req, res) => {
   const { specialist_id } = req.body;
-  const student_id = req.user.userId;
+  const student_id = req.user.id;
 
   if (!specialist_id) {
     return res.status(400).json({ error: 'Specialist ID is required' });
@@ -139,7 +139,7 @@ router.post('/register-student', authenticateToken, async (req, res) => {
 // Rate a specialist
 router.post('/rate', authenticateToken, async (req, res) => {
   const { specialist_id, rating, review } = req.body;
-  const student_id = req.user.userId;
+  const student_id = req.user.id;
 
   if (!specialist_id || !rating) {
     return res.status(400).json({ 
