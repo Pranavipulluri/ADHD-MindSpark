@@ -1,49 +1,24 @@
-const { Pool } = require('pg');
+﻿const { Pool } = require('pg');
 const fs = require('fs');
 const path = require('path');
-require('dotenv').config();
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
 
 async function runMigration() {
-  const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-  });
-
   try {
-    console.log('🔗 Connecting to database...');
+    console.log('Running specialist marketplace migration...');
     
-    // Read migration file
     const migrationPath = path.join(__dirname, 'database', 'migrations', '006_specialist_marketplace.sql');
-    const migrationSQL = fs.readFileSync(migrationPath, 'utf8');
+    const sql = fs.readFileSync(migrationPath, 'utf8');
     
-    console.log('📝 Running specialist marketplace migration...');
+    await pool.query(sql);
     
-    // Execute migration
-    await pool.query(migrationSQL);
-    
-    console.log('✅ Migration completed successfully!');
-    console.log('\nCreated tables:');
-    console.log('  - specialist_appointments');
-    console.log('  - specialist_assignments');
-    console.log('  - specialist_ratings');
-    console.log('  - workshops');
-    
-    // Verify tables exist
-    const result = await pool.query(`
-      SELECT table_name 
-      FROM information_schema.tables 
-      WHERE table_schema = 'public' 
-      AND table_name IN ('specialist_appointments', 'specialist_assignments', 'specialist_ratings', 'workshops')
-      ORDER BY table_name
-    `);
-    
-    console.log('\n📊 Verified tables:');
-    result.rows.forEach(row => {
-      console.log(`  ✓ ${row.table_name}`);
-    });
-    
+    console.log('Migration completed successfully!');
   } catch (error) {
-    console.error('❌ Migration failed:', error.message);
+    console.error('Migration failed:', error.message);
     process.exit(1);
   } finally {
     await pool.end();

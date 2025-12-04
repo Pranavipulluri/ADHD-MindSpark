@@ -8,19 +8,27 @@ router.get('/', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT 
-        p.user_id,
-        p.full_name,
-        p.bio,
-        p.specialization,
+        s.id,
+        s.user_id,
+        s.first_name,
+        s.last_name,
+        s.title,
+        s.specialization,
+        s.bio,
+        s.hourly_rate,
+        s.is_available,
+        p.avatar_url,
+        p.bio as profile_bio,
         p.experience_years,
         p.certifications,
         COALESCE(AVG(sr.rating), 0) as average_rating,
         COUNT(DISTINCT sa.student_id) as total_students
-      FROM profiles p
-      LEFT JOIN specialist_ratings sr ON p.user_id = sr.specialist_id
-      LEFT JOIN specialist_assignments sa ON p.user_id = sa.specialist_id
-      WHERE p.role = 'mentor'
-      GROUP BY p.user_id, p.full_name, p.bio, p.specialization, p.experience_years, p.certifications
+      FROM specialists s
+      JOIN profiles p ON s.user_id = p.id
+      LEFT JOIN specialist_ratings sr ON s.id = sr.specialist_id
+      LEFT JOIN specialist_assignments sa ON s.id = sa.specialist_id
+      WHERE s.is_available = true
+      GROUP BY s.id, s.user_id, s.first_name, s.last_name, s.title, s.specialization, s.bio, s.hourly_rate, s.is_available, p.avatar_url, p.bio, p.experience_years, p.certifications
       ORDER BY average_rating DESC, total_students DESC
     `);
 
@@ -46,10 +54,10 @@ router.post('/appointments', authenticateToken, async (req, res) => {
   }
 
   try {
-    // Check if specialist exists and is a mentor
+    // Check if specialist exists
     const specialistCheck = await pool.query(
-      'SELECT user_id FROM profiles WHERE user_id = $1 AND role = $2',
-      [specialist_id, 'mentor']
+      'SELECT id FROM specialists WHERE id = $1 AND is_available = true',
+      [specialist_id]
     );
 
     if (specialistCheck.rows.length === 0) {
@@ -98,8 +106,8 @@ router.post('/register-student', authenticateToken, async (req, res) => {
   try {
     // Check if specialist exists
     const specialistCheck = await pool.query(
-      'SELECT user_id FROM profiles WHERE user_id = $1 AND role = $2',
-      [specialist_id, 'mentor']
+      'SELECT id FROM specialists WHERE id = $1',
+      [specialist_id]
     );
 
     if (specialistCheck.rows.length === 0) {
@@ -148,8 +156,8 @@ router.post('/rate', authenticateToken, async (req, res) => {
   try {
     // Check if specialist exists
     const specialistCheck = await pool.query(
-      'SELECT user_id FROM profiles WHERE user_id = $1 AND role = $2',
-      [specialist_id, 'mentor']
+      'SELECT id FROM specialists WHERE id = $1',
+      [specialist_id]
     );
 
     if (specialistCheck.rows.length === 0) {
