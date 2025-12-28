@@ -312,6 +312,34 @@ app.use('/api/mentors', mentorsRoutes);
 const ngoRoutes = require('./routes/ngo');
 app.use('/api/ngo', ngoRoutes);
 
+// MOOD ROUTES
+const moodRoutes = require('./routes/mood');
+app.use('/api/mood', moodRoutes);
+
+// SPECIALIST ROUTES
+const specialistsRoutes = require('./routes/specialists');
+app.use('/api/specialists', specialistsRoutes);
+
+// CHAT ROUTES (additional endpoints beyond inline ones above)
+const chatRoutes = require('./routes/chat');
+app.use('/api/chat', chatRoutes);
+
+// APPOINTMENTS ROUTES
+const appointmentsRoutes = require('./routes/appointments');
+app.use('/api/appointments', appointmentsRoutes);
+
+// FOCUS SESSIONS ROUTES
+const focusSessionsRoutes = require('./routes/focusSessions');
+app.use('/api/focus-sessions', focusSessionsRoutes);
+
+// PROGRESS ROUTES
+const progressRoutes = require('./routes/progress');
+app.use('/api/progress', progressRoutes);
+
+// GAMES ROUTES
+const gamesRoutes = require('./routes/games');
+app.use('/api/games', gamesRoutes);
+
 // Local helper functions for document processing (keeping only what's needed)
 function generateSimpleSummary(text) {
   const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 10);
