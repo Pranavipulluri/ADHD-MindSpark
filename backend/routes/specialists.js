@@ -32,10 +32,14 @@ router.get('/', authenticateToken, async (req, res) => {
       ORDER BY average_rating DESC, total_students DESC
     `);
 
-    res.json({ specialists: result.rows });
+    res.json({ 
+      success: true,
+      specialists: result.rows 
+    });
   } catch (error) {
     console.error('Error fetching specialists:', error);
     res.status(500).json({ 
+      success: false,
       error: 'Failed to fetch specialists',
       details: error.message 
     });
@@ -82,12 +86,14 @@ router.post('/appointments', authenticateToken, async (req, res) => {
     );
 
     res.status(201).json({ 
+      success: true,
       message: 'Appointment booked successfully',
       appointment: result.rows[0] 
     });
   } catch (error) {
     console.error('Error booking appointment:', error);
     res.status(500).json({ 
+      success: false,
       error: 'Failed to book appointment',
       details: error.message 
     });
@@ -100,7 +106,10 @@ router.post('/register-student', authenticateToken, async (req, res) => {
   const student_id = req.user.id;
 
   if (!specialist_id) {
-    return res.status(400).json({ error: 'Specialist ID is required' });
+    return res.status(400).json({ 
+      success: false,
+      error: 'Specialist ID is required' 
+    });
   }
 
   try {
@@ -111,7 +120,10 @@ router.post('/register-student', authenticateToken, async (req, res) => {
     );
 
     if (specialistCheck.rows.length === 0) {
-      return res.status(404).json({ error: 'Specialist not found' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'Specialist not found' 
+      });
     }
 
     // Create assignment
@@ -124,12 +136,19 @@ router.post('/register-student', authenticateToken, async (req, res) => {
     );
 
     res.status(201).json({ 
+      success: true,
       message: 'Successfully registered with specialist',
       assignment: result.rows[0] 
     });
   } catch (error) {
     console.error('Error registering student:', error);
     res.status(500).json({ 
+      success: false,
+      error: 'Failed to register student',
+      details: error.message 
+    });
+  }
+});
       error: 'Failed to register with specialist',
       details: error.message 
     });
