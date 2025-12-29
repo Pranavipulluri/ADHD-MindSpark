@@ -181,14 +181,9 @@ router.post('/', authenticateToken, uploadRateLimit, upload.single('file'), asyn
         console.log('🧠 Triggering AI processing for uploaded document...');
         aiProcessing = await processContent(contentToProcess, 'document');
         
-        // Update document with AI processing results
+        // AI processing results are returned in the response
+        // (Not saved to database to avoid schema issues)
         if (aiProcessing) {
-          await pool.query(`
-            UPDATE documents 
-            SET ai_summary = $1, ai_processed_at = NOW()
-            WHERE id = $2
-          `, [JSON.stringify(aiProcessing), document.rows[0].id]);
-          
           console.log('✅ AI processing completed for document');
         }
       } catch (aiError) {
