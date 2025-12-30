@@ -39,7 +39,7 @@ const ExtensionPage: React.FC = () => {
   const loadExtensionStats = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/extension/stats', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/extension/stats`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -57,7 +57,7 @@ const ExtensionPage: React.FC = () => {
   const loadRecentActivity = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/extension/activity?limit=10', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/extension/activity?limit=10`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
