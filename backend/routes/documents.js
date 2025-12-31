@@ -9,33 +9,8 @@ const { processContent } = require('./ai');
 const { processDocument } = require('../enhanced-document-processor');
 
 const { validate, documentSchema, validateQuery, paginationSchema } = require('../middleware/validation');
+const { authenticateToken } = require('../middleware/auth'); // Use real auth middleware
 const config = require('../config/index');
-
-// Authentication middleware for demo
-const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-
-  if (!token) {
-    return res.status(401).json({ error: 'Access token required' });
-  }
-
-  if (token.startsWith('demo-token-')) {
-    req.user = {
-      id: '550e8400-e29b-41d4-a716-446655440000',
-      email: 'demo@mindspark.com',
-      username: 'Demo User'
-    };
-    return next();
-  }
-
-  req.user = {
-    id: '550e8400-e29b-41d4-a716-446655440000',
-    email: 'demo@mindspark.com',
-    username: 'Demo User'
-  };
-  next();
-};
 
 // Simple rate limiting for uploads
 const uploadRateLimit = (req, res, next) => next();
