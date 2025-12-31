@@ -2,17 +2,12 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
-const { Pool } = require('pg');
+const pool = require('../config/database'); // Use shared pool
 
 // Import AI processing function
 const { processContent } = require('./ai');
 const { processDocument } = require('../enhanced-document-processor');
 
-// Database connection
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:Pranavi%23250406@localhost:5432/mindspark_db',
-  ssl: false
-});
 const { validate, documentSchema, validateQuery, paginationSchema } = require('../middleware/validation');
 const config = require('../config/index');
 
@@ -47,10 +42,29 @@ const uploadRateLimit = (req, res, next) => next();
 
 const router = express.Router();
 
+// Ensure uploads directory exists
+const ensureUploadDir = async () => {
+  try {
+    await fs.access(config.upload.uploadPath);
+  } catch (error) {
+    // Directory doesn't exist, create it
+    await fs.mkdir(config.upload.uploadPath, { recursive: true });
+    console.log('📁 Created uploads directory:', config.upload.uploadPath);
+  }
+};
+
+// Create uploads directory on module load
+ensureUploadDir().catch(err => console.error('Failed to create uploads directory:', err));
+
 // Configure multer for file uploads
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, config.upload.uploadPath);
+  destination: async (req, file, cb) => {
+    try {
+      await ensureUploadDir();
+      cb(null, config.upload.uploadPath);
+    } catch (error) {
+      cb(error, null);
+    }
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -230,7 +244,8 @@ router.post('/', authenticateToken, uploadRateLimit, upload.single('file'), asyn
     res.status(500).json({ 
       success: false,
       error: 'Failed to upload document',
-      message: `An error occurred while uploading your document: ${error.message}`
+      message: error.message || 'An error occurred while uploading your document',
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });
