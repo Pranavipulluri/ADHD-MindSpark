@@ -347,4 +347,67 @@ router.delete('/account', authenticateToken, async (req, res) => {
   }
 });
 
+// Update user role
+router.put('/role', authenticateToken, async (req, res) => {
+  try {
+    const { role } = req.body;
+    
+    // Validate role
+    const validRoles = ['student', 'mentor', 'ngo'];
+    if (!role || !validRoles.includes(role)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid role',
+        message: 'Role must be one of: student, mentor, ngo'
+      });
+    }
+    
+    // Update user role in database
+    const updatedUser = await pool.query(`
+      UPDATE profiles 
+      SET role = $1, updated_at = NOW()
+      WHERE id = $2
+      RETURNING id, email, username, role, points, level, avatar_url, streak_days, bio, specialization, certifications, experience_years
+    `, [role, req.user.id]);
+    
+    if (updatedUser.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+    
+    const user = updatedUser.rows[0];
+    // Generate new token with updated role
+    const token = generateToken(user);
+    
+    res.json({
+      success: true,
+      message: 'Role updated successfully',
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        role: user.role,
+        points: user.points,
+        level: user.level,
+        avatar_url: user.avatar_url,
+        streak_days: user.streak_days,
+        bio: user.bio,
+        specialization: user.specialization,
+        certifications: user.certifications,
+        experience_years: user.experience_years
+      },
+      token
+    });
+  } catch (error) {
+    console.error('Role update error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Role update failed',
+      message: 'An error occurred while updating role'
+    });
+  }
+});
+
 module.exports = router;

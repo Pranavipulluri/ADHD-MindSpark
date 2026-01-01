@@ -35,7 +35,7 @@ const MentorDashboard = () => {
   const fetchAppointments = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/mentor/appointments`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/mentors/appointments`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -50,7 +50,7 @@ const MentorDashboard = () => {
   const fetchStudents = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/mentor/students`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/mentors/students`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -64,7 +64,7 @@ const MentorDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/mentor/appointments/${appointmentId}/${action}`,
+        `${import.meta.env.VITE_API_URL}/api/mentors/appointments/${appointmentId}/${action}`,
         {
           method: 'PUT',
           headers: { 'Authorization': `Bearer ${token}` }

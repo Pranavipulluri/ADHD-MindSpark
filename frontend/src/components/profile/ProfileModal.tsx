@@ -119,6 +119,46 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) => {
     setIsEditing(false);
   };
 
+  const handleRoleChange = async (newRole: 'student' | 'mentor' | 'ngo') => {
+    if (newRole === user?.role) return; // Already this role
+    
+    if (!confirm(`Switch to ${newRole} role? This will update your account type and reload the page.`)) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/role`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ role: newRole })
+      });
+
+      const data = await response.json();
+      
+      if (data.success && data.token && data.user) {
+        // Update token with new role
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        
+        // Update auth store using updateUser
+        useAuthStore.getState().updateUser({ ...data.user, role: newRole });
+        
+        alert(`Successfully switched to ${newRole} role! Page will reload.`);
+        // Reload to update role-based navigation
+        setTimeout(() => window.location.reload(), 500);
+      } else {
+        alert('Failed to update role: ' + (data.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error updating role:', error);
+      alert('Error updating role. Please try again.');
+    }
+  };
+
   const getBadgeColor = (badge: string) => {
     const colors = {
       'First Steps': 'bg-blue-100 text-blue-800',
@@ -280,6 +320,51 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) => {
               <span className="text-gray-600">Birthday:</span>
               <span>{new Date(profile.dateOfBirth).toLocaleDateString()}</span>
             </div>
+          </div>
+        </div>
+
+        {/* Role Switcher */}
+        <div className="border-t pt-4 mt-4">
+          <h3 className="text-lg font-semibold mb-3">Account Type</h3>
+          <div className="space-y-3">
+            <p className="text-sm text-gray-600 mb-3">
+              Current role: <span className="font-semibold text-purple-600">{user?.role || 'student'}</span>
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                onClick={() => handleRoleChange('student')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  user?.role === 'student'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Student
+              </button>
+              <button
+                onClick={() => handleRoleChange('mentor')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  user?.role === 'mentor'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Mentor
+              </button>
+              <button
+                onClick={() => handleRoleChange('ngo')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  user?.role === 'ngo'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                NGO
+              </button>
+            </div>
+            <p className="text-xs text-gray-500">
+              Switch roles to access different features (Mentors can guide students, NGOs can create workshops)
+            </p>
           </div>
         </div>
       </div>

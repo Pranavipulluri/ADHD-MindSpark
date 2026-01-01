@@ -117,7 +117,7 @@ const authenticateToken = (req, res, next) => {
 // Helper functions
 const generateToken = (user) => {
   return jwt.sign(
-    { id: user.id, email: user.email, username: user.username },
+    { id: user.id, email: user.email, username: user.username, role: user.role || 'student' },
     JWT_SECRET,
     { expiresIn: '24h' }
   );
@@ -126,10 +126,16 @@ const generateToken = (user) => {
 // AUTHENTICATION ROUTES
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { email, password, username, dateOfBirth, parentEmail } = req.body;
+    const { email, password, username, dateOfBirth, parentEmail, role } = req.body;
 
     if (!email || !password || !username) {
       return res.status(400).json({ error: 'Email, password, and username are required' });
+    }
+
+    const userRole = role || 'student';
+    const validRoles = ['student', 'mentor', 'ngo'];
+    if (!validRoles.includes(userRole)) {
+      return res.status(400).json({ error: 'Invalid role specified' });
     }
 
     const existingUser = await db.query(
@@ -145,10 +151,10 @@ app.post('/api/auth/register', async (req, res) => {
     const userId = uuidv4();
 
     const newUser = await db.query(
-      `INSERT INTO profiles (id, email, username, password_hash, date_of_birth, parent_email, points, level)
-       VALUES ($1, $2, $3, $4, $5, $6, 0, 1)
-       RETURNING id, email, username, points, level, created_at`,
-      [userId, email, username, hashedPassword, dateOfBirth, parentEmail]
+      `INSERT INTO profiles (id, email, username, password_hash, date_of_birth, parent_email, points, level, role)
+       VALUES ($1, $2, $3, $4, $5, $6, 0, 1, $7)
+       RETURNING id, email, username, points, level, role, created_at`,
+      [userId, email, username, hashedPassword, dateOfBirth, parentEmail, userRole]
     );
 
     const user = newUser.rows[0];
@@ -161,7 +167,8 @@ app.post('/api/auth/register', async (req, res) => {
         email: user.email,
         username: user.username,
         points: user.points,
-        level: user.level
+        level: user.level,
+        role: user.role || 'student'
       },
       token
     });
@@ -205,7 +212,8 @@ app.post('/api/auth/login', async (req, res) => {
         username: user.username,
         points: user.points,
         level: user.level,
-        avatar_url: user.avatar_url
+        avatar_url: user.avatar_url,
+        role: user.role || 'student'
       },
       token
     });
@@ -229,6 +237,34 @@ app.get('/api/auth/profile', authenticateToken, async (req, res) => {
     res.json({ user: userResult.rows[0] });
   } catch (error) {
     console.error('Profile fetch error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Update user role (inline helper so frontend can call /api/auth/role)
+app.put('/api/auth/role', authenticateToken, async (req, res) => {
+  try {
+    const { role } = req.body;
+    const validRoles = ['student', 'mentor', 'ngo'];
+    if (!role || !validRoles.includes(role)) {
+      return res.status(400).json({ error: 'Invalid role' });
+    }
+
+    const updated = await db.query(
+      `UPDATE profiles SET role = $1, updated_at = NOW() WHERE id = $2 RETURNING id, email, username, role, points, level, avatar_url, streak_days`,
+      [role, req.user.id]
+    );
+
+    if (updated.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const user = updated.rows[0];
+    const token = generateToken(user);
+
+    res.json({ message: 'Role updated', user: { ...user }, token });
+  } catch (error) {
+    console.error('Role update error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

@@ -163,6 +163,144 @@ router.get('/dashboard', authenticateToken, isMentor, async (req, res) => {
   }
 });
 
+// Get all mentors (for students to view/book)
+router.get('/', authenticateToken, async (req, res) => {
+  try {
+    const mentors = await pool.query(`
+      SELECT 
+        m.id,
+        p.username,
+        p.email,
+        p.bio,
+        p.specialization,
+        p.certifications,
+        p.experience_years,
+        p.avatar_url
+      FROM profiles p
+      WHERE p.role = 'mentor'
+      ORDER BY p.created_at DESC
+    `);
+    
+    res.json({
+      success: true,
+      mentors: mentors.rows
+    });
+  } catch (error) {
+    console.error('Error fetching mentors:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch mentors'
+    });
+  }
+});
+
+// Get mentor's appointments
+router.get('/appointments', authenticateToken, isMentor, async (req, res) => {
+  try {
+    const appointments = await pool.query(`
+      SELECT 
+        sa.id,
+        sa.student_id,
+        sa.scheduled_date,
+        sa.status,
+        sa.notes,
+        p.username as student_name,
+        p.email as student_email
+      FROM specialist_appointments sa
+      JOIN profiles p ON sa.student_id = p.id
+      WHERE sa.specialist_id = $1
+      ORDER BY sa.scheduled_date DESC
+    `, [req.user.id]);
+    
+    res.json({
+      success: true,
+      appointments: appointments.rows
+    });
+  } catch (error) {
+    console.error('Error fetching appointments:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch appointments'
+    });
+  }
+});
+
+// Get mentor's students
+router.get('/students', authenticateToken, isMentor, async (req, res) => {
+  try {
+    const students = await pool.query(`
+      SELECT 
+        sa.student_id as id,
+        p.username,
+        p.email,
+        p.avatar_url,
+        COUNT(sa.id) as appointment_count
+      FROM specialist_appointments sa
+      JOIN profiles p ON sa.student_id = p.id
+      WHERE sa.specialist_id = $1 AND sa.status IN ('accepted', 'completed')
+      GROUP BY sa.student_id, p.username, p.email, p.avatar_url
+      ORDER BY p.username
+    `, [req.user.id]);
+    
+    res.json({
+      success: true,
+      students: students.rows
+    });
+  } catch (error) {
+    console.error('Error fetching students:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch students'
+    });
+  }
+});
+
+// Update appointment status (accept/reject)
+router.put('/appointments/:id/:action', authenticateToken, isMentor, async (req, res) => {
+  try {
+    const { id, action } = req.params;
+    
+    if (!['accept', 'reject', 'complete'].includes(action)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid action'
+      });
+    }
+    
+    const statusMap = {
+      accept: 'accepted',
+      reject: 'rejected',
+      complete: 'completed'
+    };
+    
+    const result = await pool.query(`
+      UPDATE specialist_appointments 
+      SET status = $1, updated_at = NOW()
+      WHERE id = $2 AND specialist_id = $3
+      RETURNING *
+    `, [statusMap[action], id, req.user.id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Appointment not found'
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: `Appointment ${action}ed successfully`,
+      appointment: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Error updating appointment:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update appointment'
+    });
+  }
+});
+
 // Get assigned student's progress
 router.get('/students/:studentId/progress', authenticateToken, isMentor, async (req, res) => {
   try {
