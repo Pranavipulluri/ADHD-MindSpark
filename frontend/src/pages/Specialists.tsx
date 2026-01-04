@@ -29,7 +29,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ specialist, onClose, onSubm
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({ specialist_id: specialist.id, date, time, notes });
+    const appointment_date = `${date}T${time}:00`;
+    onSubmit({ specialist_id: specialist.id, appointment_date, notes });
   };
 
   return (

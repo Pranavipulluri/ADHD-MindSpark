@@ -8,27 +8,30 @@ router.get('/', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT 
-        s.id,
-        s.user_id,
-        s.first_name,
-        s.last_name,
-        s.title,
-        s.specialization,
-        s.bio,
-        s.hourly_rate,
-        s.is_available,
-        p.avatar_url,
-        p.bio as profile_bio,
-        p.experience_years,
+        p.id,
+        p.username,
+        p.email,
+        p.bio,
+        p.specialization,
         p.certifications,
-        COALESCE(AVG(sr.rating), 0) as average_rating,
-        COUNT(DISTINCT sa.student_id) as total_students
-      FROM specialists s
-      JOIN profiles p ON s.user_id = p.id
-      LEFT JOIN specialist_ratings sr ON s.id = sr.specialist_id
-      LEFT JOIN specialist_assignments sa ON s.id = sa.specialist_id
-      WHERE s.is_available = true
-      GROUP BY s.id, s.user_id, s.first_name, s.last_name, s.title, s.specialization, s.bio, s.hourly_rate, s.is_available, p.avatar_url, p.bio, p.experience_years, p.certifications
+        p.experience_years,
+        p.avatar_url,
+        p.role,
+        COALESCE(
+          (SELECT AVG(rating)::numeric(3,2) 
+           FROM specialist_ratings sr 
+           WHERE sr.specialist_id = p.id), 
+          0
+        ) as average_rating,
+        COALESCE(
+          (SELECT COUNT(DISTINCT student_id) 
+           FROM specialist_appointments sa 
+           WHERE sa.specialist_id = p.id), 
+          0
+        ) as total_students
+      FROM profiles p
+      WHERE p.role = 'mentor' 
+        AND (p.bio IS NOT NULL OR p.specialization IS NOT NULL)
       ORDER BY average_rating DESC, total_students DESC
     `);
 
@@ -59,23 +62,23 @@ router.post('/appointments', authenticateToken, async (req, res) => {
   }
 
   try {
-    // Check if specialist exists
+    // Check if specialist (mentor) exists
     const specialistCheck = await pool.query(
-      'SELECT id FROM specialists WHERE id = $1 AND is_available = true',
-      [specialist_id]
+      'SELECT id FROM profiles WHERE id = $1 AND role = $2',
+      [specialist_id, 'mentor']
     );
 
     if (specialistCheck.rows.length === 0) {
       return res.status(404).json({ 
         success: false,
-        error: 'Specialist not found' 
+        error: 'Specialist not found or not a mentor' 
       });
     }
 
     // Create appointment
     const result = await pool.query(
       `INSERT INTO specialist_appointments 
-       (student_id, specialist_id, appointment_date, notes, status) 
+       (student_id, specialist_id, scheduled_date, notes, status) 
        VALUES ($1, $2, $3, $4, $5) 
        RETURNING *`,
       [student_id, specialist_id, appointment_date, notes || '', 'pending']
@@ -117,16 +120,16 @@ router.post('/register-student', authenticateToken, async (req, res) => {
   }
 
   try {
-    // Check if specialist exists
+    // Check if specialist (mentor) exists
     const specialistCheck = await pool.query(
-      'SELECT id FROM specialists WHERE id = $1',
-      [specialist_id]
+      'SELECT id FROM profiles WHERE id = $1 AND role = $2',
+      [specialist_id, 'mentor']
     );
 
     if (specialistCheck.rows.length === 0) {
       return res.status(404).json({ 
         success: false,
-        error: 'Specialist not found' 
+        error: 'Specialist not found or not a mentor' 
       });
     }
 
@@ -174,16 +177,16 @@ router.post('/rate', authenticateToken, async (req, res) => {
   }
 
   try {
-    // Check if specialist exists
+    // Check if specialist (mentor) exists
     const specialistCheck = await pool.query(
-      'SELECT id FROM specialists WHERE id = $1',
-      [specialist_id]
+      'SELECT id FROM profiles WHERE id = $1 AND role = $2',
+      [specialist_id, 'mentor']
     );
 
     if (specialistCheck.rows.length === 0) {
       return res.status(404).json({ 
         success: false,
-        error: 'Specialist not found' 
+        error: 'Specialist not found or not a mentor' 
       });
     }
 
